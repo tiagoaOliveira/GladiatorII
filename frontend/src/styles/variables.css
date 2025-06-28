@@ -1,0 +1,99 @@
+:root {
+  /* Paleta de Cores Medieval */
+  --primary-gold: #D4AF37;
+  --primary-gold-dark: #B8941F;
+  --primary-gold-light: #F4E99B;
+  
+  --secondary-burgundy: #722F37;
+  --secondary-burgundy-dark: #5A252A;
+  --secondary-burgundy-light: #8B3A42;
+  
+  --accent-forest: #2F4F2F;
+  --accent-forest-dark: #1C2E1C;
+  --accent-forest-light: #3D5A3D;
+  
+  --neutral-stone: #8B7355;
+  --neutral-stone-dark: #6B5940;
+  --neutral-stone-light: #A68B6B;
+  
+  --background-parchment: #F5F5DC;
+  --background-dark: #1A1A1A;
+  --background-overlay: rgba(26, 26, 26, 0.8);
+  
+  --text-primary: #2C1810;
+  --text-secondary: #5A4A3A;
+  --text-light: #F5F5DC;
+  --text-accent: #D4AF37;
+  
+  --border-medieval: #8B7355;
+  --border-light: #D4C4A8;
+  --shadow-dark: rgba(44, 24, 16, 0.3);
+  --shadow-gold: rgba(212, 175, 55, 0.2);
+  
+  --error-red: #8B0000;
+  --success-green: #228B22;
+  --warning-orange: #FF8C00;
+  
+  /* Tipografia */
+  --font-primary: 'Cinzel', 'Times New Roman', serif;
+  --font-secondary: 'Crimson Text', 'Georgia', serif;
+  --font-body: 'Libre Baskerville', 'Times New Roman', serif;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Espaçamentos */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+  
+  /* Bordas */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 0.75rem;
+  --border-radius-xl: 1rem;
+  
+  --border-width-thin: 1px;
+  --border-width-medium: 2px;
+  --border-width-thick: 3px;
+  
+  /* Sombras */
+  --shadow-sm: 0 1px 2px var(--shadow-dark);
+  --shadow-md: 0 4px 6px var(--shadow-dark);
+  --shadow-lg: 0 10px 15px var(--shadow-dark);
+  --shadow-xl: 0 20px 25px var(--shadow-dark);
+  --shadow-inner: inset 0 2px 4px var(--shadow-dark);
+  --shadow-gold-glow: 0 0 20px var(--shadow-gold);
+  
+  /* Transições */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-normal: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease-in-out;
+  
+  /* Gradientes */
+  --gradient-gold: linear-gradient(135deg, var(--primary-gold-light), var(--primary-gold-dark));
+  --gradient-burgundy: linear-gradient(135deg, var(--secondary-burgundy-light), var(--secondary-burgundy-dark));
+  --gradient-parchment: linear-gradient(135deg, var(--background-parchment), #EAE0C8);
+  --gradient-medieval: linear-gradient(135deg, var(--accent-forest-dark), var(--secondary-burgundy-dark));
+  
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+}

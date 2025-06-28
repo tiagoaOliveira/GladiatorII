@@ -1,0 +1,185 @@
+/* Container principal do login */
+.login-container {
+    background-image: url('../assets/romec.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* Formulário de login */
+.login-form {
+    background: #f5f5dc59;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(44, 24, 16, 0.3);
+    border: 2px solid #D4AF37;
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Título do login */
+.login-title {
+    font-family: 'Times New Roman', serif;
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: #722F37;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    text-shadow: 1px 1px 2px rgba(212, 175, 55, 0.2);
+}
+
+/* Mensagem de erro */
+.error-message {
+    background: linear-gradient(135deg, #8B0000, #A52A2A);
+    color: #F5F5DC;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid #CD5C5C;
+    box-shadow: 0 4px 6px rgba(44, 24, 16, 0.3);
+}
+
+/* Grupos de input */
+.input-group {
+    margin-bottom: 1rem;
+}
+
+/* Estilo dos inputs */
+.login-input {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #8B7355;
+    border-radius: 4px;
+    color: #2C1810;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.login-input::placeholder {
+    color: #5A4A3A;
+    font-style: italic;
+}
+
+.login-input:focus {
+    outline: none;
+    border-color: #D4AF37;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+    background: rgba(255, 255, 255, 1);
+}
+
+.login-input:hover {
+    border-color: #B8941F;
+}
+
+.login-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Botão de login */
+.login-button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #F5F5DC;
+    background: linear-gradient(135deg, #F4E99B, #B8941F);
+    border: 2px solid #B8941F;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-sizing: border-box;
+}
+
+.login-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #D4AF37, #F4E99B);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(44, 24, 16, 0.3);
+}
+
+.login-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(44, 24, 16, 0.3);
+}
+
+.login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    background: #8B7355;
+}
+
+/* Estado de loading */
+.login-form.loading .login-button {
+    position: relative;
+    color: transparent;
+}
+
+.login-form.loading .login-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #F5F5DC;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .login-container {
+        padding: 0.5rem;
+    }
+
+    .login-form {
+        padding: 1.5rem;
+        margin: 0.5rem;
+    }
+
+    .login-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-form {
+        padding: 1rem;
+        margin: 0.25rem;
+    }
+
+    .login-title {
+        font-size: 1.25rem;
+    }
+
+    .login-input,
+    .login-button {
+        padding: 0.625rem;
+        font-size: 0.875rem;
+    }
+}
