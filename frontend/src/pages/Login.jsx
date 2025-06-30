@@ -73,7 +73,7 @@ export default function Auth() {
         className={`login-form ${isLoading ? 'loading' : ''}`}
       >
         <h2 className="login-title">
-          {mode === 'login' ? 'Entrar no Reino' : 'Criar sua Conta'}
+          {mode === 'login' ? 'Join the Realm' : 'Create Account'}
         </h2>
 
         {error && (
@@ -85,7 +85,7 @@ export default function Auth() {
         <div className="input-group">
           <input
             type="email"
-            placeholder="Digite seu email"
+            placeholder="Input your Email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             className="login-input"
@@ -96,7 +96,7 @@ export default function Auth() {
         <div className="input-group">
           <input
             type="password"
-            placeholder="Digite sua senha"
+            placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="login-input"
@@ -112,14 +112,14 @@ export default function Auth() {
           disabled={isLoading || !email || !password}
         >
           {isLoading
-            ? mode === 'login' ? 'Entrando...' : 'Registrando...'
-            : mode === 'login' ? 'Entrar' : 'Registrar'}
+            ? mode === 'login' ? 'Starting...' : 'Registering...'
+            : mode === 'login' ? 'Login' : 'Sign Up'}
         </button>
 
         <p className="toggle-text">
           {mode === 'login'
-            ? 'Não tem conta? '
-            : 'Já tem conta? '}
+            ? 'Dont Registered? '
+            : 'Already Registered? '}
           <button
             type="button"
             className="toggle-link"
@@ -131,7 +131,7 @@ export default function Auth() {
             }}
             disabled={isLoading}
           >
-            {mode === 'login' ? 'Crie uma' : 'Faça login'}
+            {mode === 'login' ? 'Sign Up' : 'Login'}
           </button>
         </p>
       </form>

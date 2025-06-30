@@ -1,9 +1,116 @@
-.container-perfil {
-    background-image: url('../assets//speed.png');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-    height: 100%;
-    color: blue;
+/* Container principal do perfil */
+.perfil-container {
+  background-image: url('../assets/speed.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
 }
 
+/* Overlay para melhor legibilidade */
+.perfil-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+/* Conteúdo da arena */
+.arena-content {
+  background: linear-gradient(135deg, var(--background-parchment), #EAE0C8);
+  border: 3px solid var(--primary-gold);
+  border-radius: var(--border-radius-xl);
+  padding: 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 20px 40px var(--shadow-dark);
+  max-width: 600px;
+  width: 100%;
+}
+
+/* Estatísticas */
+.arena-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
+  border: 2px solid var(--primary-gold-dark);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px var(--shadow-dark);
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px var(--shadow-dark);
+}
+
+.stat-card h3 {
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-burgundy);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-number {
+  font-family: var(--font-primary);
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-light);
+  text-shadow: 1px 1px 2px var(--shadow-dark);
+}
+
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .arena-content {
+    padding: 1.5rem;
+  }
+
+  .arena-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .stat-card h3 {
+    font-size: 0.9rem;
+  }
+
+  .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .action-text {
+    font-size: 0.9rem;
+  }
+}
