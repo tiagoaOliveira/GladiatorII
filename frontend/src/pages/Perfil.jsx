@@ -106,17 +106,12 @@ export default function Perfil() {
     <div className="container-perfil">
       <div className="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl font-bold">
-              {profile?.email?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Perfil do Usuário</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
         </div>
         
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
-            <label className="block text-sm font-medium text-gray-600 mb-1">ID do Usuário:</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">ID:</label>
             <p className="text-gray-900 font-mono text-sm break-all">
               {profile?.id || user?.id}
             </p>
@@ -131,9 +126,9 @@ export default function Perfil() {
           
           {profile?.created_at && (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Membro desde:</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Member Since:</label>
               <p className="text-gray-900">
-                {new Date(profile.created_at).toLocaleDateString('pt-BR', {
+                {new Date(profile.created_at).toLocaleDateString('en', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -143,28 +138,14 @@ export default function Perfil() {
               </p>
             </div>
           )}
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <label className="block text-sm font-medium text-gray-600 mb-1">Status:</label>
-            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-              Ativo
-            </span>
-          </div>
         </div>
 
-        <div className="mt-8 space-y-3">
-          <button 
-            onClick={() => window.location.href = '/'}
-            className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-          >
-            Voltar ao Início
-          </button>
-          
+        <div className="mt-8 space-y-3">       
           <button 
             onClick={handleLogout}
             className="w-full px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
           >
-            Sair da Conta
+            Logout
           </button>
         </div>
       </div>
