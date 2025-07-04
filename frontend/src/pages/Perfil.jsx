@@ -10,9 +10,10 @@ import './Perfil.css';
 export default function Perfil() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [characterType, setCharacterType] = useState(1);
+  const [characterType, setCharacterType] = useState(null);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
-
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  
   const BACKGROUND_IMAGES = {
     1: 'speed.png',
     2: 'critical.png',
@@ -44,35 +45,56 @@ export default function Perfil() {
     setCharacterType(newCharacterType);
     loadProfile(); // Recarrega o perfil
   };
+
+  if (characterType === null) {
+    return <Layout><div className="perfil-container"></div></Layout>;
+  }
+
   return (
     <Layout>
       <div className={`perfil-container character-${characterType}`}>
-        <div className="arena-content">
-          <div className="arena-stats">
-            <div className="stat-card">
-              <h3>Level</h3>
-              <span className="stat-number">{profile?.level || 1}</span>
+        {/* Bola clicável */}
+        <div 
+          className={`arena-orb ${isStatsOpen ? 'expanded' : ''}`}
+          onClick={() => setIsStatsOpen(!isStatsOpen)}
+        >
+          {!isStatsOpen ? (
+            <div className="orb-content">
+              <div className="orb-level">
+                <span className="level-number">{profile?.level || 1}</span>
+              </div>
+              <div className="orb-name">
+                {profile?.character_name || 'Gladiator'}
+              </div>
             </div>
-            <div className="stat-card">
-              <h3>Victories</h3>
-              <span className="stat-number">{profile?.victories || 0}</span>
-            </div>
-            <div className="stat-card">
-              <h3>Defeats</h3>
-              <span className="stat-number">{profile?.defeats || 0}</span>
-            </div>
-            <div className="stat-card">
-              <h3>Ranked Points</h3>
-              <span className="stat-number">{profile?.ranked_points || 0}</span>
-            </div>
-          </div>
+          ) : (
+            <div className="arena-content">
+              <div className="arena-stats">
+                <div className="stat-card">
+                  <h3>Victories</h3>
+                  <span className="stat-number">{profile?.victories || 0}</span>
+                </div>
+                <div className="stat-card">
+                  <h3>Defeats</h3>
+                  <span className="stat-number">{profile?.defeats || 0}</span>
+                </div>
+                <div className="stat-card">
+                  <h3>Ranked Points</h3>
+                  <span className="stat-number">{profile?.ranked_points || 0}</span>
+                </div>
+              </div>
 
-          <button
-            className="nav-button"
-            onClick={() => setIsCharacterModalOpen(true)}
-          >
-            Change Character
-          </button>
+              <button
+                className="nav-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCharacterModalOpen(true);
+                }}
+              >
+                Change Character & Name
+              </button>
+            </div>
+          )}
         </div>
 
         <CharacterModal

@@ -3,9 +3,9 @@ import { supabase } from '../services/supabaseClientFront';
 import './CharacterModal.css';
 
 const CHARACTERS = {
-  1: { name: 'Gladiator', bgImage: 'speed.png' },
+  1: { name: 'Ninja', bgImage: 'speed.png' },
   2: { name: 'Warrior', bgImage: 'warrior.png' },
-  3: { name: 'Champion', bgImage: 'champion.png' }
+  3: { name: 'Tank', bgImage: 'champion.png' }
 };
 
 export default function CharacterModal({ user, isOpen, onClose, onCharacterChange }) {
@@ -45,8 +45,8 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
       return;
     }
 
-    if (!/^[A-Z0-9]+$/.test(characterName)) {
-      setError('Nome deve conter apenas A-Z e 0-9');
+    if (!/^[A-Z0-9_.-]+$/.test(characterName)) {
+      setError('Nome deve conter apenas A-Z, 0-9, _, -, .');
       return;
     }
 
@@ -58,6 +58,7 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
         .from('profiles')
         .update({
           character_type: selectedCharacter,
+          character_name: characterName.trim()
         })
         .eq('id', user.id);
 
