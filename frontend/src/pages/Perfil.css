@@ -11,6 +11,17 @@
   padding: 2rem;
   position: relative;
 }
+.perfil-container.character-1 {
+  background-image: url('../assets/speed.png');
+}
+
+.perfil-container.character-2 {
+  background-image: url('../assets/critical.png');
+}
+
+.perfil-container.character-3 {
+  background-image: url('../assets/reflect.png');
+}
 
 /* Overlay para melhor legibilidade */
 .perfil-container::before {
