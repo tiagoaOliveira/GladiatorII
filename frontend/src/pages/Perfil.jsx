@@ -6,8 +6,8 @@ import Layout from '../components/Layout';
 import './Perfil.css';
 
 const CHARACTERS = {
-  1: { 
-    name: 'Assassin', 
+  1: {
+    name: 'Assassin',
     bgImage: 'speed.png',
     hp: 80,
     attack: 90,
@@ -15,8 +15,8 @@ const CHARACTERS = {
     critical: 85,
     speed: 95
   },
-  2: { 
-    name: 'Warrior', 
+  2: {
+    name: 'Warrior',
     bgImage: 'critical.png',
     hp: 100,
     attack: 85,
@@ -24,8 +24,8 @@ const CHARACTERS = {
     critical: 70,
     speed: 65
   },
-  3: { 
-    name: 'Tank', 
+  3: {
+    name: 'Tank',
     bgImage: 'reflect.png',
     hp: 120,
     attack: 70,
@@ -41,7 +41,7 @@ export default function Perfil() {
   const [characterType, setCharacterType] = useState(null);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
   const [isChangingCharacter, setIsChangingCharacter] = useState(false);
-  
+
   const BACKGROUND_IMAGES = {
     1: 'speed.png',
     2: 'critical.png',
@@ -76,9 +76,9 @@ export default function Perfil() {
 
   const changeCharacter = async (direction) => {
     if (isChangingCharacter) return;
-    
+
     setIsChangingCharacter(true);
-    
+
     let newCharacterType;
     if (direction === 'next') {
       newCharacterType = characterType === 3 ? 1 : characterType + 1;
@@ -113,39 +113,36 @@ export default function Perfil() {
     <Layout>
       <div className={`perfil-container character-${characterType}`}>
         {/* Seta Esquerda */}
-        <button 
+        <button
           className="character-nav-arrow left"
           onClick={() => changeCharacter('prev')}
           disabled={isChangingCharacter}
         >
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
         {/* Orbe do Personagem */}
-        <div 
+        <div
           className="arena-orb"
           onClick={() => setIsCharacterModalOpen(true)}
         >
           <div className="orb-content">
             <div className="orb-level">
-              <span className="level-number">{profile?.level || 1}</span>
-            </div>
-            <div className="orb-name">
-              {profile?.character_name || currentCharacter.name}
+              <span className="level-number">LV. {profile?.level || 1}</span>
             </div>
           </div>
         </div>
 
         {/* Seta Direita */}
-        <button 
+        <button
           className="character-nav-arrow right"
           onClick={() => changeCharacter('next')}
           disabled={isChangingCharacter}
         >
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
@@ -154,16 +151,16 @@ export default function Perfil() {
           <div className="attributes-header">
             <h3>{currentCharacter.name}</h3>
           </div>
-          
+
           <div className="attributes-grid">
             <div className="attribute-item">
               <div className="attribute-icon hp">❤️</div>
               <div className="attribute-info">
-                <span className="attribute-name">HP</span>
+                <span className="attribute-name">Health</span>
                 <span className="attribute-value">{currentCharacter.hp}</span>
               </div>
             </div>
-            
+
             <div className="attribute-item">
               <div className="attribute-icon attack">⚔️</div>
               <div className="attribute-info">
@@ -171,7 +168,7 @@ export default function Perfil() {
                 <span className="attribute-value">{currentCharacter.attack}</span>
               </div>
             </div>
-            
+
             <div className="attribute-item">
               <div className="attribute-icon defense">🛡️</div>
               <div className="attribute-info">
@@ -179,7 +176,7 @@ export default function Perfil() {
                 <span className="attribute-value">{currentCharacter.defense}</span>
               </div>
             </div>
-            
+
             <div className="attribute-item">
               <div className="attribute-icon critical">💥</div>
               <div className="attribute-info">
@@ -187,7 +184,7 @@ export default function Perfil() {
                 <span className="attribute-value">{currentCharacter.critical}</span>
               </div>
             </div>
-            
+
             <div className="attribute-item">
               <div className="attribute-icon speed">💨</div>
               <div className="attribute-info">
