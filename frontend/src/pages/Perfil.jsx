@@ -5,13 +5,42 @@ import CharacterModal from '../components/CharacterModal';
 import Layout from '../components/Layout';
 import './Perfil.css';
 
-
+const CHARACTERS = {
+  1: { 
+    name: 'Assassin', 
+    bgImage: 'speed.png',
+    hp: 80,
+    attack: 90,
+    defense: 60,
+    critical: 85,
+    speed: 95
+  },
+  2: { 
+    name: 'Warrior', 
+    bgImage: 'critical.png',
+    hp: 100,
+    attack: 85,
+    defense: 90,
+    critical: 70,
+    speed: 65
+  },
+  3: { 
+    name: 'Tank', 
+    bgImage: 'reflect.png',
+    hp: 120,
+    attack: 70,
+    defense: 100,
+    critical: 60,
+    speed: 55
+  }
+};
 
 export default function Perfil() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [characterType, setCharacterType] = useState(null);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
+  const [isChangingCharacter, setIsChangingCharacter] = useState(false);
   
   const BACKGROUND_IMAGES = {
     1: 'speed.png',
@@ -45,14 +74,56 @@ export default function Perfil() {
     loadProfile(); // Recarrega o perfil
   };
 
+  const changeCharacter = async (direction) => {
+    if (isChangingCharacter) return;
+    
+    setIsChangingCharacter(true);
+    
+    let newCharacterType;
+    if (direction === 'next') {
+      newCharacterType = characterType === 3 ? 1 : characterType + 1;
+    } else {
+      newCharacterType = characterType === 1 ? 3 : characterType - 1;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ character_type: newCharacterType })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setCharacterType(newCharacterType);
+      await loadProfile();
+    } catch (error) {
+      console.error('Erro ao mudar personagem:', error);
+    } finally {
+      setIsChangingCharacter(false);
+    }
+  };
+
   if (characterType === null) {
     return <Layout><div className="perfil-container"></div></Layout>;
   }
 
- return (
+  const currentCharacter = CHARACTERS[characterType];
+
+  return (
     <Layout>
       <div className={`perfil-container character-${characterType}`}>
-        {/* Substitua a div arena-orb por esta: */}
+        {/* Seta Esquerda */}
+        <button 
+          className="character-nav-arrow left"
+          onClick={() => changeCharacter('prev')}
+          disabled={isChangingCharacter}
+        >
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        {/* Orbe do Personagem */}
         <div 
           className="arena-orb"
           onClick={() => setIsCharacterModalOpen(true)}
@@ -62,7 +133,67 @@ export default function Perfil() {
               <span className="level-number">{profile?.level || 1}</span>
             </div>
             <div className="orb-name">
-              {profile?.character_name || 'Gladiator'}
+              {profile?.character_name || currentCharacter.name}
+            </div>
+          </div>
+        </div>
+
+        {/* Seta Direita */}
+        <button 
+          className="character-nav-arrow right"
+          onClick={() => changeCharacter('next')}
+          disabled={isChangingCharacter}
+        >
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+
+        {/* Painel de Atributos */}
+        <div className="character-attributes">
+          <div className="attributes-header">
+            <h3>{currentCharacter.name}</h3>
+          </div>
+          
+          <div className="attributes-grid">
+            <div className="attribute-item">
+              <div className="attribute-icon hp">❤️</div>
+              <div className="attribute-info">
+                <span className="attribute-name">HP</span>
+                <span className="attribute-value">{currentCharacter.hp}</span>
+              </div>
+            </div>
+            
+            <div className="attribute-item">
+              <div className="attribute-icon attack">⚔️</div>
+              <div className="attribute-info">
+                <span className="attribute-name">Attack</span>
+                <span className="attribute-value">{currentCharacter.attack}</span>
+              </div>
+            </div>
+            
+            <div className="attribute-item">
+              <div className="attribute-icon defense">🛡️</div>
+              <div className="attribute-info">
+                <span className="attribute-name">Defense</span>
+                <span className="attribute-value">{currentCharacter.defense}</span>
+              </div>
+            </div>
+            
+            <div className="attribute-item">
+              <div className="attribute-icon critical">💥</div>
+              <div className="attribute-info">
+                <span className="attribute-name">Critical</span>
+                <span className="attribute-value">{currentCharacter.critical}</span>
+              </div>
+            </div>
+            
+            <div className="attribute-item">
+              <div className="attribute-icon speed">💨</div>
+              <div className="attribute-info">
+                <span className="attribute-name">Speed</span>
+                <span className="attribute-value">{currentCharacter.speed}</span>
+              </div>
             </div>
           </div>
         </div>

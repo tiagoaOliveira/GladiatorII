@@ -37,15 +37,15 @@ function StatsDisplay({ profile }) {
     <div className="stats-display">
       <div className="stats-grid">
         <div className="stat-card">
-          <h3>Victories</h3>
+          <h3>VICTORIES</h3>
           <span className="stat-number">{profile?.victories || 0}</span>
         </div>
         <div className="stat-card">
-          <h3>Defeats</h3>
+          <h3>DEFEATS</h3>
           <span className="stat-number">{profile?.defeats || 0}</span>
         </div>
         <div className="stat-card">
-          <h3>Ranked Points</h3>
+          <h3>RANKED P.</h3>
           <span className="stat-number">{profile?.ranked_points || 0}</span>
         </div>
       </div>

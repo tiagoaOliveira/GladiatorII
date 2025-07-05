@@ -34,62 +34,151 @@
   z-index: 1;
 }
 
-.stat-card {
+/* SETAS DE NAVEGAÇÃO */
+.character-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
   background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
-  border: 2px solid var(--primary-gold-dark);
-  border-radius: var(--border-radius-lg);
-  padding: 1.5rem;
-  text-align: center;
+  border: 3px solid var(--secondary-burgundy);
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 8px var(--shadow-dark);
-}
-
-.stat-card h3 {
-  font-family: var(--font-primary);
-  font-size: 1rem;
-  font-weight: var(--font-weight-semibold);
   color: var(--secondary-burgundy);
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  box-shadow:
+    0 0 25px rgba(212, 175, 55, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  animation: pulse 2s infinite;
 }
 
-.stat-number {
-  font-family: var(--font-primary);
-  font-size: 2rem;
-  font-weight: var(--font-weight-bold);
+.character-nav-arrow.left {
+  left: 3rem;
+}
+
+.character-nav-arrow.right {
+  right: 3rem;
+}
+
+.character-nav-arrow:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.1);
+  box-shadow:
+    0 0 35px rgba(212, 175, 55, 0.8),
+    inset 0 0 25px rgba(255, 255, 255, 0.2);
   color: var(--text-light);
-  text-shadow: 1px 1px 2px var(--shadow-dark);
 }
 
-
-/* Responsividade */
-@media (max-width: 768px) {
-  .stat-card {
-    padding: 1rem;
-  }
-
-  .stat-number {
-    font-size: 1.5rem;
-  }
+.character-nav-arrow:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
 }
 
-@media (max-width: 480px) {
+@keyframes pulse {
 
-  .stat-card h3 {
-    font-size: 0.9rem;
+  0%,
+  100% {
+    box-shadow:
+      0 0 25px rgba(212, 175, 55, 0.5),
+      inset 0 0 20px rgba(255, 255, 255, 0.1);
   }
 
-  .stat-number {
-    font-size: 1.2rem;
-  }
-
-  .action-text {
-    font-size: 0.9rem;
+  50% {
+    box-shadow:
+      0 0 35px rgba(212, 175, 55, 0.7),
+      inset 0 0 25px rgba(255, 255, 255, 0.15);
   }
 }
 
-/*ARENA ORB*/
+/* PAINEL DE ATRIBUTOS */
+.character-attributes {
+  position: absolute;
+  bottom: 10rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 1.5rem;
+  min-width: 40px;
+}
+
+.attributes-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+}
+
+.attributes-header h3 {
+  font-family: var(--font-primary);
+  font-size: 1.5rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--warning-orange);
+}
+
+.attributes-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+.attribute-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+   background: linear-gradient(135deg, 
+    rgba(245, 245, 220, 0.95), 
+    rgba(234, 224, 200, 0.95));
+  border: 2px solid var(--neutral-stone);
+  border-radius: var(--border-radius-lg);
+  transition: all 0.3s ease;
+}
+
+.attribute-item:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-gold);
+  box-shadow: 0 5px 15px rgba(44, 24, 16, 0.2);
+}
+
+.attribute-icon {
+  font-size: 1.5rem;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
+  box-shadow: 0 2px 8px rgba(44, 24, 16, 0.3);
+}
+
+.attribute-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.attribute-name {
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.attribute-value {
+  font-family: var(--font-primary);
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--secondary-burgundy);
+  text-shadow: 1px 1px 2px rgba(212, 175, 55, 0.2);
+}
+
+/* ARENA ORB (mantido do original) */
 .arena-orb {
   position: relative;
   z-index: 2;
@@ -112,7 +201,6 @@
   animation: float 3s ease-in-out infinite;
 }
 
-/* Estado da bola (fechada) */
 .arena-orb:not(.expanded) {
   width: 150px;
   height: 150px;
@@ -135,8 +223,6 @@
     inset 0 0 50px rgba(255, 255, 255, 0.2);
 }
 
-
-/* Conteúdo da bola */
 .orb-content {
   text-align: center;
   color: var(--text-light);
@@ -167,7 +253,6 @@
   letter-spacing: 1px;
 }
 
-/* Animação de flutuação */
 @keyframes float {
 
   0%,
@@ -179,9 +264,73 @@
     transform: translateY(-10px);
   }
 }
+.stat-card {
+  background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
+  border: 2px solid var(--primary-gold-dark);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 8px var(--shadow-dark);
+}
 
-/* Responsividade para a bola */
+.stat-card h3 {
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-burgundy);
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.stat-number {
+  font-family: var(--font-primary);
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--text-light);
+  text-shadow: 1px 1px 2px var(--shadow-dark);
+}
+/* RESPONSIVIDADE */
 @media (max-width: 768px) {
+  .character-nav-arrow {
+    width: 50px;
+    height: 50px;
+  }
+
+  .character-nav-arrow.left {
+    left: 1rem;
+  }
+
+  .character-nav-arrow.right {
+    right: 1rem;
+  }
+
+  .character-attributes {
+    min-width: 90%;
+    padding: 1rem;
+    bottom: 1rem;
+  }
+
+  .attributes-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  .attribute-item {
+    padding: 0.75rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .attribute-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+  }
+
+  .attribute-value {
+    font-size: 1.1rem;
+  }
 
   .arena-orb {
     margin-left: -16rem;
@@ -199,5 +348,24 @@
 
   .orb-name {
     font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .attributes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .character-attributes {
+    min-width: 95%;
+    padding: 0.75rem;
+  }
+
+  .attribute-item {
+    padding: 0.5rem;
+  }
+
+  .attributes-header h3 {
+    font-size: 1.2rem;
   }
 }
