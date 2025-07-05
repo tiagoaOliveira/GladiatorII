@@ -3,12 +3,57 @@ import { supabase } from '../services/supabaseClientFront';
 import './CharacterModal.css';
 
 const CHARACTERS = {
-  1: { name: 'Ninja', bgImage: 'speed.png' },
-  2: { name: 'Warrior', bgImage: 'warrior.png' },
-  3: { name: 'Tank', bgImage: 'champion.png' }
+  1: { 
+    name: 'Ninja', 
+    bgImage: 'speed.png',
+    hp: 80,
+    attack: 90,
+    defense: 60,
+    critical: 85,
+    speed: 95
+  },
+  2: { 
+    name: 'Warrior', 
+    bgImage: 'warrior.png',
+    hp: 100,
+    attack: 85,
+    defense: 90,
+    critical: 70,
+    speed: 65
+  },
+  3: { 
+    name: 'Tank', 
+    bgImage: 'champion.png',
+    hp: 120,
+    attack: 70,
+    defense: 100,
+    critical: 60,
+    speed: 55
+  }
 };
 
-export default function CharacterModal({ user, isOpen, onClose, onCharacterChange }) {
+function StatsDisplay({ profile }) {
+  return (
+    <div className="stats-display">
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h3>Victories</h3>
+          <span className="stat-number">{profile?.victories || 0}</span>
+        </div>
+        <div className="stat-card">
+          <h3>Defeats</h3>
+          <span className="stat-number">{profile?.defeats || 0}</span>
+        </div>
+        <div className="stat-card">
+          <h3>Ranked Points</h3>
+          <span className="stat-number">{profile?.ranked_points || 0}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CharacterModal({ user, isOpen, onClose, onCharacterChange, profile }) {
   const [selectedCharacter, setSelectedCharacter] = useState(1);
   const [characterName, setCharacterName] = useState('');
   const [currentProfile, setCurrentProfile] = useState(null);
@@ -87,12 +132,14 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
     <div className="character-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="character-modal">
         <div className="character-header">
-          <h2 className="character-title">Select Character</h2>
+          <h2 className="character-title">Character Profile</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 
         <div className="character-content">
           {error && <div className="error-message">{error}</div>}
+          
+          <StatsDisplay profile={profile} />
           
           <div className="name-section">
             <label className="name-label">Character Name:</label>
@@ -105,20 +152,6 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
               maxLength={20}
               disabled={loading}
             />
-          </div>
-
-          <div className="characters-grid">
-            {Object.entries(CHARACTERS).map(([id, char]) => (
-              <div
-                key={id}
-                className={`character-option ${selectedCharacter === parseInt(id) ? 'selected' : ''}`}
-                onClick={() => setSelectedCharacter(parseInt(id))}
-              >
-                <div className="character-preview">
-                  <span className="character-name">{char.name}</span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

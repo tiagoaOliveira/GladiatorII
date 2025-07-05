@@ -12,7 +12,6 @@ export default function Perfil() {
   const [profile, setProfile] = useState(null);
   const [characterType, setCharacterType] = useState(null);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
   
   const BACKGROUND_IMAGES = {
     1: 'speed.png',
@@ -50,55 +49,27 @@ export default function Perfil() {
     return <Layout><div className="perfil-container"></div></Layout>;
   }
 
-  return (
+ return (
     <Layout>
       <div className={`perfil-container character-${characterType}`}>
-        {/* Bola clicável */}
+        {/* Substitua a div arena-orb por esta: */}
         <div 
-          className={`arena-orb ${isStatsOpen ? 'expanded' : ''}`}
-          onClick={() => setIsStatsOpen(!isStatsOpen)}
+          className="arena-orb"
+          onClick={() => setIsCharacterModalOpen(true)}
         >
-          {!isStatsOpen ? (
-            <div className="orb-content">
-              <div className="orb-level">
-                <span className="level-number">{profile?.level || 1}</span>
-              </div>
-              <div className="orb-name">
-                {profile?.character_name || 'Gladiator'}
-              </div>
+          <div className="orb-content">
+            <div className="orb-level">
+              <span className="level-number">{profile?.level || 1}</span>
             </div>
-          ) : (
-            <div className="arena-content">
-              <div className="arena-stats">
-                <div className="stat-card">
-                  <h3>Victories</h3>
-                  <span className="stat-number">{profile?.victories || 0}</span>
-                </div>
-                <div className="stat-card">
-                  <h3>Defeats</h3>
-                  <span className="stat-number">{profile?.defeats || 0}</span>
-                </div>
-                <div className="stat-card">
-                  <h3>Ranked Points</h3>
-                  <span className="stat-number">{profile?.ranked_points || 0}</span>
-                </div>
-              </div>
-
-              <button
-                className="nav-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCharacterModalOpen(true);
-                }}
-              >
-                Change Character & Name
-              </button>
+            <div className="orb-name">
+              {profile?.character_name || 'Gladiator'}
             </div>
-          )}
+          </div>
         </div>
 
         <CharacterModal
           user={user}
+          profile={profile}
           isOpen={isCharacterModalOpen}
           onClose={() => setIsCharacterModalOpen(false)}
           onCharacterChange={handleCharacterChange}
