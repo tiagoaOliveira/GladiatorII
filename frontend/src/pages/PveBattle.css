@@ -1,0 +1,346 @@
+.pve-battle-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--background-dark), var(--accent-forest-dark));
+  padding: 2rem;
+  position: relative;
+}
+
+.pve-battle-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('../assets/battle-arena.png') center/cover;
+  opacity: 0.3;
+  z-index: 1;
+}
+
+.pve-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* HEADER DA BATALHA */
+.pve-title {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-gold);
+  text-shadow: 2px 2px 4px var(--shadow-dark);
+  letter-spacing: 2px;
+}
+
+.pve-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--secondary-burgundy-dark), var(--accent-forest-dark));
+  border: 3px solid var(--primary-gold);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.pve-subtitle {
+  font-family: var(--font-secondary);
+  font-size: var(--font-size-lg);
+  color: var(--text-light);
+  opacity: 0.9;
+  font-style: italic;
+}
+
+/* GRID DE INIMIGOS */
+.enemies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+/* CARD DO INIMIGO */
+.enemy-card {
+  background: linear-gradient(135deg, var(--background-parchment), #EAE0C8);
+  border: 3px solid var(--neutral-stone);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.enemy-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 49%, var(--primary-gold) 50%, transparent 51%);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.enemy-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--primary-gold);
+  box-shadow: var(--shadow-lg), var(--shadow-gold-glow);
+}
+
+.enemy-card:hover::before {
+  opacity: 0.1;
+}
+
+.enemy-card.boss {
+  border-color: var(--warning-orange);
+  background: linear-gradient(135deg, #FFE4B5, #F0E68C);
+}
+
+.enemy-card.boss::after {
+  content: '👑';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.5rem;
+  animation: pulse 2s infinite;
+}
+
+/* IMAGEM DO INIMIGO */
+.enemy-image {
+  width: 100%;
+  height: 120px;
+  background: var(--gradient-medieval);
+  border-radius: var(--border-radius-md);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: var(--text-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.enemy-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+  animation: shimmer 3s infinite;
+}
+
+.enemy-image.warrior { background: linear-gradient(135deg, #8B0000, #DC143C); }
+.enemy-image.assassin { background: linear-gradient(135deg, #2F2F2F, #696969); }
+.enemy-image.tank { background: linear-gradient(135deg, #4682B4, #87CEEB); }
+.enemy-image.boss { background: linear-gradient(135deg, #FF4500, #FFD700); }
+
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+/* INFORMAÇÕES DO INIMIGO */
+.enemy-info {
+  position: relative;
+  z-index: 2;
+}
+
+.enemy-name {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--secondary-burgundy);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.enemy-level {
+  font-family: var(--font-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 1rem;
+  font-weight: var(--font-weight-medium);
+}
+
+.enemy-description {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* STATS DO INIMIGO */
+.enemy-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.enemy-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.stat-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.stat-name {
+  font-family: var(--font-primary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-family: var(--font-primary);
+  font-weight: var(--font-weight-bold);
+  color: var(--secondary-burgundy);
+  margin-left: auto;
+}
+
+/* RECOMPENSAS */
+.enemy-rewards {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, var(--primary-gold-light), var(--primary-gold));
+  border-radius: var(--border-radius-md);
+  margin-bottom: 1rem;
+}
+
+.reward-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--secondary-burgundy);
+}
+
+.reward-icon {
+  font-size: 1rem;
+}
+
+/* BOTÃO DE BATALHA */
+.battle-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-light);
+  background: var(--gradient-burgundy);
+  border: 2px solid var(--secondary-burgundy-dark);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.battle-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left var(--transition-normal);
+}
+
+.battle-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--secondary-burgundy), var(--secondary-burgundy-light));
+}
+
+.battle-button:hover::before {
+  left: 100%;
+}
+
+.battle-button:active {
+  transform: translateY(0);
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+  .pve-battle-container {
+    padding: 1rem;
+  }
+
+  .pve-header {
+    padding: 1.5rem;
+  }
+
+  .pve-title {
+    font-size: var(--font-size-3xl);
+  }
+
+  .enemies-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .enemy-card {
+    padding: 1rem;
+  }
+
+  .enemy-image {
+    height: 100px;
+    font-size: 2.5rem;
+  }
+
+  .enemy-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+   .pve-title {
+    font-size: var(--font-size-3xl);
+  }
+
+  .pve-header {
+    padding: 1rem;
+  }
+
+  .pve-title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .enemy-image {
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .enemy-rewards {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

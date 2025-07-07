@@ -30,6 +30,17 @@
   color: var(--primary-gold);
   text-shadow: 2px 2px 4px var(--shadow-dark);
   letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-title:hover {
+  color: var(--primary-gold-light);
+  transform: scale(1.05);
+  text-shadow: 2px 2px 6px var(--shadow-dark);
 }
 
 /* Menu hambúrguer */
@@ -102,7 +113,7 @@
 /* Botões de navegação */
 .nav-button {
   font-family: var(--font-primary);
-  font-size: 0.9rem;
+  font-size: 1.5rem;
   font-weight: var(--font-weight-semibold);
   color: var(--text-light);
   background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
@@ -111,9 +122,12 @@
   padding: 0.5rem 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
   text-shadow: 1px 1px 2px var(--shadow-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  height: 40px;
 }
 
 .nav-button:hover {
@@ -130,6 +144,9 @@
   padding: 0.75rem 1rem;
   text-align: center;
   border-radius: var(--border-radius-lg);
+  font-size: 1.8rem;
+  height: 50px;
+  min-width: 100%;
 }
 
 /* Overlay do menu mobile */

@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ConfigModal from '../components/ConfigModal';
 import './Layout.css';
 
 export default function Layout({ children }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
@@ -25,12 +27,19 @@ export default function Layout({ children }) {
     setIsConfigOpen(false);
   };
 
+  const handleNavigation = (path) => {
+    navigate(path);
+    closeMenu();
+  };
+
   return (
     <div className="layout-container">
       {/* Header com menu */}
       <header className="layout-header">
         <div className="header-content">
-          <h1 className="game-title">GLADIATOR</h1>
+          <h1 className="game-title" onClick={() => handleNavigation('/Perfil')}>
+            ⚔️ GLADIATOR
+          </h1>
           
           {/* Menu hambúrguer */}
           <button 
@@ -45,27 +54,67 @@ export default function Layout({ children }) {
 
           {/* Menu desktop */}
           <nav className="desktop-nav">
-            <button className="nav-button">PvE Battle</button>
-            <button className="nav-button">Tournament</button>
-            <button className="nav-button">Shop</button>
-            <button className="nav-button" onClick={openConfig}>Config</button>
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/PveBattle')}
+              title="PvE Battle"
+            >
+              ⚔️
+            </button>
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/Tournament')}
+              title="Tournament"
+            >
+              👑
+            </button>
+            <button 
+              className="nav-button" 
+              onClick={() => handleNavigation('/Shop')}
+              title="Shop"
+            >
+              🛒
+            </button>
+            <button 
+              className="nav-button" 
+              onClick={openConfig}
+              title="Config"
+            >
+              ⚙️
+            </button>
           </nav>
         </div>
 
         {/* Menu mobile */}
         <nav className={`mobile-nav ${isMenuOpen ? 'open' : ''}`}>
           <div className="mobile-nav-content">
-            <button className="nav-button mobile" onClick={closeMenu}>
-              PvE Battle
+            <button 
+              className="nav-button mobile" 
+              onClick={() => handleNavigation('/PveBattle')}
+              title="PvE Battle"
+            >
+              ⚔️
             </button>
-            <button className="nav-button mobile" onClick={closeMenu}>
-              Tournament
+            <button 
+              className="nav-button mobile" 
+              onClick={() => handleNavigation('/Tournament')}
+              title="Tournament"
+            >
+              👑
             </button>
-            <button className="nav-button mobile" onClick={closeMenu}>
-              Shop
+            <button 
+              className="nav-button mobile" 
+              onClick={() => handleNavigation('/Shop')}
+              title="Shop"
+            >
+              🛒
             </button>
-            <button className="nav-button mobile" onClick={openConfig}>
-              Config
+            <button 
+              className="nav-button mobile" 
+              onClick={openConfig}
+              title="Config"
+            >
+              ⚙️
             </button>
           </div>
         </nav>

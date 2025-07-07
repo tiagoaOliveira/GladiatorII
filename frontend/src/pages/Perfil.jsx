@@ -9,29 +9,29 @@ const CHARACTERS = {
   1: {
     name: 'Assassin',
     bgImage: 'speed.png',
-    hp: 80,
-    attack: 90,
-    defense: 60,
-    critical: 85,
-    speed: 95
+    hp: 800,
+    attack: 70,
+    defense: 150,
+    critical: 25,
+    speed: 1.2
   },
   2: {
     name: 'Warrior',
     bgImage: 'critical.png',
-    hp: 100,
+    hp: 1000,
     attack: 85,
-    defense: 90,
-    critical: 70,
-    speed: 65
+    defense: 100,
+    critical: 40,
+    speed: 1
   },
   3: {
     name: 'Tank',
     bgImage: 'reflect.png',
-    hp: 120,
-    attack: 70,
-    defense: 100,
-    critical: 60,
-    speed: 55
+    hp: 1200,
+    attack: 60,
+    defense: 300,
+    critical: 20,
+    speed: 1
   }
 };
 
@@ -148,10 +148,6 @@ export default function Perfil() {
 
         {/* Painel de Atributos */}
         <div className="character-attributes">
-          <div className="attributes-header">
-            <h3>{currentCharacter.name}</h3>
-          </div>
-
           <div className="attributes-grid">
             <div className="attribute-item">
               <div className="attribute-icon hp">❤️</div>

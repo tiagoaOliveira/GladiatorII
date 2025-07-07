@@ -106,19 +106,6 @@
   min-width: 40px;
 }
 
-.attributes-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-}
-
-.attributes-header h3 {
-  font-family: var(--font-primary);
-  font-size: 1.5rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--warning-orange);
-}
-
 .attributes-grid {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
@@ -178,8 +165,8 @@
   cursor: pointer;
   transition: all 0.3s ease;
   user-select: none;
-  margin-left: -32rem;
-  margin-top: -48rem;
+  margin-left: -36rem;
+  margin-top: -51rem;
   width: 100px;
   height: 100px;
   border-radius: 50%;
@@ -316,6 +303,8 @@
   .arena-orb:not(.expanded) {
     width: 80px;
     height: 80px;
+    top: -5rem;
+    left: -0.5rem;
   }
 
   .level-number {
@@ -337,7 +326,4 @@
     padding: 0.5rem;
   }
 
-  .attributes-header h3 {
-    font-size: 1.2rem;
-  }
 }
