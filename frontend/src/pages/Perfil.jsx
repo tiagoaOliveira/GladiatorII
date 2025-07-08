@@ -5,52 +5,25 @@ import CharacterModal from '../components/CharacterModal';
 import Layout from '../components/Layout';
 import './Perfil.css';
 
-const CHARACTERS = {
-  1: {
-    name: 'Assassin',
-    bgImage: 'speed.png',
-    hp: 800,
-    attack: 70,
-    defense: 150,
-    critical: 25,
-    speed: 1.2
-  },
-  2: {
-    name: 'Warrior',
-    bgImage: 'critical.png',
-    hp: 1000,
-    attack: 85,
-    defense: 100,
-    critical: 40,
-    speed: 1
-  },
-  3: {
-    name: 'Tank',
-    bgImage: 'reflect.png',
-    hp: 1200,
-    attack: 60,
-    defense: 300,
-    critical: 20,
-    speed: 1
-  }
-};
-
 export default function Perfil() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [characterType, setCharacterType] = useState(null);
+  const [characterData, setCharacterData] = useState(null);
+  const [characterStats, setCharacterStats] = useState(null);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
   const [isChangingCharacter, setIsChangingCharacter] = useState(false);
-
-  const BACKGROUND_IMAGES = {
-    1: 'speed.png',
-    2: 'critical.png',
-    3: 'reflect.png'
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) loadProfile();
   }, [user]);
+
+  useEffect(() => {
+    if (characterType && profile) {
+      loadCharacterData();
+    }
+  }, [characterType, profile]);
 
   const loadProfile = async () => {
     try {
@@ -66,6 +39,38 @@ export default function Perfil() {
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCharacterData = async () => {
+    try {
+      // Carregar dados do tipo de personagem
+      const { data: characterTypeData, error: characterError } = await supabase
+        .from('character_types')
+        .select('*')
+        .eq('id', characterType)
+        .single();
+
+      if (characterError) throw characterError;
+
+      setCharacterData(characterTypeData);
+
+      // Calcular stats baseado no level do jogador
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('calculate_character_stats', {
+          character_type_id: characterType,
+          level: profile.level || 1
+        });
+
+      if (statsError) throw statsError;
+
+      if (statsData && statsData.length > 0) {
+        setCharacterStats(statsData[0]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do personagem:', error);
     }
   };
 
@@ -103,11 +108,24 @@ export default function Perfil() {
     }
   };
 
-  if (characterType === null) {
-    return <Layout><div className="perfil-container"></div></Layout>;
+  if (loading || !characterData || !characterStats) {
+    return (
+      <Layout>
+        <div className="perfil-container">
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '100vh',
+            color: 'var(--text-light)',
+            fontSize: '1.5rem'
+          }}>
+            Carregando personagem...
+          </div>
+        </div>
+      </Layout>
+    );
   }
-
-  const currentCharacter = CHARACTERS[characterType];
 
   return (
     <Layout>
@@ -153,7 +171,7 @@ export default function Perfil() {
               <div className="attribute-icon hp">❤️</div>
               <div className="attribute-info">
                 <span className="attribute-name">Health</span>
-                <span className="attribute-value">{currentCharacter.hp}</span>
+                <span className="attribute-value">{characterStats.hp}</span>
               </div>
             </div>
 
@@ -161,7 +179,7 @@ export default function Perfil() {
               <div className="attribute-icon attack">⚔️</div>
               <div className="attribute-info">
                 <span className="attribute-name">Attack</span>
-                <span className="attribute-value">{currentCharacter.attack}</span>
+                <span className="attribute-value">{characterStats.attack}</span>
               </div>
             </div>
 
@@ -169,7 +187,7 @@ export default function Perfil() {
               <div className="attribute-icon defense">🛡️</div>
               <div className="attribute-info">
                 <span className="attribute-name">Defense</span>
-                <span className="attribute-value">{currentCharacter.defense}</span>
+                <span className="attribute-value">{characterStats.defense}</span>
               </div>
             </div>
 
@@ -177,7 +195,7 @@ export default function Perfil() {
               <div className="attribute-icon critical">💥</div>
               <div className="attribute-info">
                 <span className="attribute-name">Critical</span>
-                <span className="attribute-value">{currentCharacter.critical}</span>
+                <span className="attribute-value">{characterStats.critical}</span>
               </div>
             </div>
 
@@ -185,7 +203,7 @@ export default function Perfil() {
               <div className="attribute-icon speed">💨</div>
               <div className="attribute-info">
                 <span className="attribute-name">Speed</span>
-                <span className="attribute-value">{currentCharacter.speed}</span>
+                <span className="attribute-value">{characterStats.speed}</span>
               </div>
             </div>
           </div>
@@ -194,6 +212,8 @@ export default function Perfil() {
         <CharacterModal
           user={user}
           profile={profile}
+          characterData={characterData}
+          characterStats={characterStats}
           isOpen={isCharacterModalOpen}
           onClose={() => setIsCharacterModalOpen(false)}
           onCharacterChange={handleCharacterChange}

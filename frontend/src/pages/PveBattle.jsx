@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../services/supabaseClientFront';
-import { ENEMIES, getEnemyById } from '../utils/enemies';
 import Layout from '../components/Layout';
 import './PveBattle.css';
 
@@ -15,12 +14,18 @@ const ENEMY_ICONS = {
 export default function PveBattle() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [enemies, setEnemies] = useState([]);
+  const [enemyStats, setEnemyStats] = useState({});
   const [selectedEnemy, setSelectedEnemy] = useState(null);
   const [battleResult, setBattleResult] = useState(null);
   const [isBattling, setIsBattling] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) loadProfile();
+    if (user) {
+      loadProfile();
+      loadEnemies();
+    }
   }, [user]);
 
   const loadProfile = async () => {
@@ -39,8 +44,54 @@ export default function PveBattle() {
     }
   };
 
-  const handleEnemySelect = (enemyId) => {
-    const enemy = getEnemyById(enemyId);
+  const loadEnemies = async () => {
+    try {
+      // Carregar todos os inimigos
+      const { data: enemiesData, error: enemiesError } = await supabase
+        .from('enemies')
+        .select('*')
+        .order('level', { ascending: true });
+
+      if (enemiesError) throw enemiesError;
+
+      setEnemies(enemiesData);
+
+      // Calcular stats para cada inimigo
+      const statsPromises = enemiesData.map(async (enemy) => {
+        const { data: statsData, error: statsError } = await supabase
+          .rpc('calculate_enemy_stats', {
+            enemy_id: enemy.id
+          });
+
+        if (statsError) {
+          console.error(`Erro ao calcular stats do inimigo ${enemy.id}:`, statsError);
+          return null;
+        }
+
+        return {
+          enemyId: enemy.id,
+          stats: statsData[0]
+        };
+      });
+
+      const resolvedStats = await Promise.all(statsPromises);
+      const statsMap = {};
+      
+      resolvedStats.forEach(item => {
+        if (item) {
+          statsMap[item.enemyId] = item.stats;
+        }
+      });
+
+      setEnemyStats(statsMap);
+    } catch (error) {
+      console.error('Erro ao carregar inimigos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEnemySelect = (enemy) => {
     setSelectedEnemy(enemy);
   };
 
@@ -56,8 +107,8 @@ export default function PveBattle() {
       
       if (playerWins) {
         // Atualizar XP e ouro no banco
-        const newXp = (profile.xp || 0) + enemy.xpReward;
-        const newGold = (profile.gold || 0) + enemy.goldReward;
+        const newXp = (profile.xp || 0) + enemy.xp_reward;
+        const newGold = (profile.gold || 0) + enemy.gold_reward;
         
         const { error } = await supabase
           .from('profiles')
@@ -72,8 +123,8 @@ export default function PveBattle() {
 
         setBattleResult({
           victory: true,
-          xpGained: enemy.xpReward,
-          goldGained: enemy.goldReward,
+          xpGained: enemy.xp_reward,
+          goldGained: enemy.gold_reward,
           message: `Você derrotou ${enemy.name}!`
         });
 
@@ -108,12 +159,33 @@ export default function PveBattle() {
     }
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="pve-battle-container">
+          <div className="pve-content">
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '50vh',
+              color: 'var(--text-light)',
+              fontSize: '1.5rem'
+            }}>
+              Carregando inimigos...
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!profile) {
     return (
       <Layout>
         <div className="pve-battle-container">
           <div className="pve-content">
-            <p>Carregando...</p>
+            <p>Erro ao carregar perfil. Tente novamente.</p>
           </div>
         </div>
       </Layout>
@@ -132,73 +204,78 @@ export default function PveBattle() {
 
           {/* Grid de Inimigos */}
           <div className="enemies-grid">
-            {Object.values(ENEMIES).map((enemy) => (
-              <div 
-                key={enemy.id} 
-                className={`enemy-card ${enemy.type}`}
-                onClick={() => handleEnemySelect(enemy.id)}
-              >
-                {/* Imagem do Inimigo */}
-                <div className={`enemy-image ${enemy.type}`}>
-                  {ENEMY_ICONS[enemy.type]}
-                </div>
+            {enemies.map((enemy) => {
+              const stats = enemyStats[enemy.id];
+              if (!stats) return null;
 
-                {/* Informações do Inimigo */}
-                <div className="enemy-info">
-                  <h3 className="enemy-name">{enemy.name}</h3>
-                  <p className="enemy-level">Level {enemy.level}</p>
-                  <p className="enemy-description">{enemy.description}</p>
-
-                  {/* Stats do Inimigo */}
-                  <div className="enemy-stats">
-                    <div className="enemy-stat">
-                      <span className="stat-icon">❤️</span>
-                      <span className="stat-name">HP</span>
-                      <span className="stat-value">{enemy.hp}</span>
-                    </div>
-                    <div className="enemy-stat">
-                      <span className="stat-icon">⚔️</span>
-                      <span className="stat-name">ATK</span>
-                      <span className="stat-value">{enemy.attack}</span>
-                    </div>
-                    <div className="enemy-stat">
-                      <span className="stat-icon">🛡️</span>
-                      <span className="stat-name">DEF</span>
-                      <span className="stat-value">{enemy.defense}</span>
-                    </div>
-                    <div className="enemy-stat">
-                      <span className="stat-icon">💨</span>
-                      <span className="stat-name">SPD</span>
-                      <span className="stat-value">{enemy.speed}</span>
-                    </div>
+              return (
+                <div 
+                  key={enemy.id} 
+                  className={`enemy-card ${enemy.type}`}
+                  onClick={() => handleEnemySelect(enemy)}
+                >
+                  {/* Imagem do Inimigo */}
+                  <div className={`enemy-image ${enemy.type}`}>
+                    {ENEMY_ICONS[enemy.type]}
                   </div>
 
-                  {/* Recompensas */}
-                  <div className="enemy-rewards">
-                    <div className="reward-item">
-                      <span className="reward-icon">🏆</span>
-                      <span>{enemy.xpReward} XP</span>
-                    </div>
-                    <div className="reward-item">
-                      <span className="reward-icon">💰</span>
-                      <span>{enemy.goldReward} Gold</span>
-                    </div>
-                  </div>
+                  {/* Informações do Inimigo */}
+                  <div className="enemy-info">
+                    <h3 className="enemy-name">{enemy.name}</h3>
+                    <p className="enemy-level">Level {enemy.level}</p>
+                    <p className="enemy-description">{enemy.description}</p>
 
-                  {/* Botão de Batalha */}
-                  <button
-                    className="battle-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startBattle(enemy);
-                    }}
-                    disabled={isBattling}
-                  >
-                    {isBattling ? 'Battling...' : 'Battle!'}
-                  </button>
+                    {/* Stats do Inimigo */}
+                    <div className="enemy-stats">
+                      <div className="enemy-stat">
+                        <span className="stat-icon">❤️</span>
+                        <span className="stat-name">HP</span>
+                        <span className="stat-value">{stats.hp}</span>
+                      </div>
+                      <div className="enemy-stat">
+                        <span className="stat-icon">⚔️</span>
+                        <span className="stat-name">ATK</span>
+                        <span className="stat-value">{stats.attack}</span>
+                      </div>
+                      <div className="enemy-stat">
+                        <span className="stat-icon">🛡️</span>
+                        <span className="stat-name">DEF</span>
+                        <span className="stat-value">{stats.defense}</span>
+                      </div>
+                      <div className="enemy-stat">
+                        <span className="stat-icon">💨</span>
+                        <span className="stat-name">SPD</span>
+                        <span className="stat-value">{stats.speed}</span>
+                      </div>
+                    </div>
+
+                    {/* Recompensas */}
+                    <div className="enemy-rewards">
+                      <div className="reward-item">
+                        <span className="reward-icon">🏆</span>
+                        <span>{enemy.xp_reward} XP</span>
+                      </div>
+                      <div className="reward-item">
+                        <span className="reward-icon">💰</span>
+                        <span>{enemy.gold_reward} Gold</span>
+                      </div>
+                    </div>
+
+                    {/* Botão de Batalha */}
+                    <button
+                      className="battle-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startBattle(enemy);
+                      }}
+                      disabled={isBattling}
+                    >
+                      {isBattling ? 'Battling...' : 'Battle!'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Informações do Jogador */}
