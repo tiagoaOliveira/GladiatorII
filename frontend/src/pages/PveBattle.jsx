@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../services/supabaseClientFront';
 import Layout from '../components/Layout';
+import ModalBattle from '../components/ModalBattle';
 import './PveBattle.css';
 
 const ENEMY_ICONS = {
@@ -20,6 +21,8 @@ export default function PveBattle() {
   const [battleResult, setBattleResult] = useState(null);
   const [isBattling, setIsBattling] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
+  const [selectedEnemyForBattle, setSelectedEnemyForBattle] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -76,7 +79,7 @@ export default function PveBattle() {
 
       const resolvedStats = await Promise.all(statsPromises);
       const statsMap = {};
-      
+
       resolvedStats.forEach(item => {
         if (item) {
           statsMap[item.enemyId] = item.stats;
@@ -95,68 +98,9 @@ export default function PveBattle() {
     setSelectedEnemy(enemy);
   };
 
-  const startBattle = async (enemy) => {
-    if (!profile || isBattling) return;
-
-    setIsBattling(true);
-    setBattleResult(null);
-
-    try {
-      // Simular batalha (aqui você pode implementar a lógica real)
-      const playerWins = Math.random() > 0.3; // 70% chance de vitória
-      
-      if (playerWins) {
-        // Atualizar XP e ouro no banco
-        const newXp = (profile.xp || 0) + enemy.xp_reward;
-        const newGold = (profile.gold || 0) + enemy.gold_reward;
-        
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            xp: newXp, 
-            gold: newGold,
-            battles_won: (profile.battles_won || 0) + 1
-          })
-          .eq('id', user.id);
-
-        if (error) throw error;
-
-        setBattleResult({
-          victory: true,
-          xpGained: enemy.xp_reward,
-          goldGained: enemy.gold_reward,
-          message: `Você derrotou ${enemy.name}!`
-        });
-
-        // Recarregar perfil
-        await loadProfile();
-      } else {
-        // Derrota
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            battles_lost: (profile.battles_lost || 0) + 1
-          })
-          .eq('id', user.id);
-
-        if (error) throw error;
-
-        setBattleResult({
-          victory: false,
-          message: `${enemy.name} te derrotou! Tente novamente.`
-        });
-
-        await loadProfile();
-      }
-    } catch (error) {
-      console.error('Erro na batalha:', error);
-      setBattleResult({
-        victory: false,
-        message: 'Erro na batalha. Tente novamente.'
-      });
-    } finally {
-      setIsBattling(false);
-    }
+  const openBattleModal = (enemy) => {
+    setSelectedEnemyForBattle(enemy);
+    setIsBattleModalOpen(true);
   };
 
   if (loading) {
@@ -164,10 +108,10 @@ export default function PveBattle() {
       <Layout>
         <div className="pve-battle-container">
           <div className="pve-content">
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               height: '50vh',
               color: 'var(--text-light)',
               fontSize: '1.5rem'
@@ -209,8 +153,8 @@ export default function PveBattle() {
               if (!stats) return null;
 
               return (
-                <div 
-                  key={enemy.id} 
+                <div
+                  key={enemy.id}
                   className={`enemy-card ${enemy.type}`}
                   onClick={() => handleEnemySelect(enemy)}
                 >
@@ -266,11 +210,11 @@ export default function PveBattle() {
                       className="battle-button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        startBattle(enemy);
+                        openBattleModal(enemy);
                       }}
                       disabled={isBattling}
                     >
-                      {isBattling ? 'Battling...' : 'Battle!'}
+                      Battle!
                     </button>
                   </div>
                 </div>
@@ -278,27 +222,15 @@ export default function PveBattle() {
             })}
           </div>
 
-          {/* Informações do Jogador */}
-          <div className="player-info">
-            <h3>Your Stats</h3>
-            <div className="player-stats">
-              <div className="stat-item">
-                <span>Level: {profile.level || 1}</span>
-              </div>
-              <div className="stat-item">
-                <span>XP: {profile.xp || 0}</span>
-              </div>
-              <div className="stat-item">
-                <span>Gold: {profile.gold || 0}</span>
-              </div>
-              <div className="stat-item">
-                <span>Wins: {profile.battles_won || 0}</span>
-              </div>
-              <div className="stat-item">
-                <span>Losses: {profile.battles_lost || 0}</span>
-              </div>
-            </div>
-          </div>
+          {/* Modal de Batalha */}
+          {isBattleModalOpen && (
+            <ModalBattle
+              isOpen={isBattleModalOpen}
+              onClose={() => setIsBattleModalOpen(false)}
+              enemy={selectedEnemyForBattle}
+              enemyStats={enemyStats[selectedEnemyForBattle?.id]}
+            />
+          )}
         </div>
       </div>
     </Layout>

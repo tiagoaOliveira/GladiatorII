@@ -100,15 +100,6 @@
   background: linear-gradient(135deg, #FFE4B5, #F0E68C);
 }
 
-.enemy-card.boss::after {
-  content: '👑';
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-size: 1.5rem;
-  animation: pulse 2s infinite;
-}
-
 /* IMAGEM DO INIMIGO */
 .enemy-image {
   width: 100%;

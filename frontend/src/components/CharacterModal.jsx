@@ -3,8 +3,8 @@ import { supabase } from '../services/supabaseClientFront';
 import './CharacterModal.css';
 
 const CHARACTERS = {
-  1: { 
-    name: 'Ninja', 
+  1: {
+    name: 'Ninja',
     bgImage: 'speed.png',
     hp: 80,
     attack: 90,
@@ -12,8 +12,8 @@ const CHARACTERS = {
     critical: 85,
     speed: 95
   },
-  2: { 
-    name: 'Warrior', 
+  2: {
+    name: 'Warrior',
     bgImage: 'warrior.png',
     hp: 100,
     attack: 85,
@@ -21,8 +21,8 @@ const CHARACTERS = {
     critical: 70,
     speed: 65
   },
-  3: { 
-    name: 'Tank', 
+  3: {
+    name: 'Tank',
     bgImage: 'champion.png',
     hp: 120,
     attack: 70,
@@ -75,7 +75,7 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
         .single();
 
       if (error) throw error;
-      
+
       setCurrentProfile(data);
       setSelectedCharacter(data.character_type || 1);
       setCharacterName(data.character_name || '');
@@ -138,9 +138,7 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
 
         <div className="character-content">
           {error && <div className="error-message">{error}</div>}
-          
-          <StatsDisplay profile={profile} />
-          
+
           <div className="name-section">
             <label className="name-label">Character Name:</label>
             <input
@@ -153,10 +151,13 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
               disabled={loading}
             />
           </div>
+          
+          <StatsDisplay profile={profile} />
+
         </div>
 
         <div className="character-actions">
-          <button 
+          <button
             onClick={handleSave}
             className="save-button"
             disabled={loading || !characterName.trim()}

@@ -38,7 +38,7 @@ export default function Layout({ children }) {
       <header className="layout-header">
         <div className="header-content">
           <h1 className="game-title" onClick={() => handleNavigation('/Perfil')}>
-            ⚔️ GLADIATOR
+            GLADIATOR
           </h1>
           
           {/* Menu hambúrguer */}
