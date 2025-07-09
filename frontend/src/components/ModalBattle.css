@@ -1,308 +1,301 @@
 /* Modal Battle Styles */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding-top: 2rem;
 }
 
 .modal-battle {
-  background: linear-gradient(135deg, var(--secondary-burgundy-dark), var(--accent-forest-dark));
-  border: 3px solid var(--primary-gold);
-  border-radius: var(--border-radius-xl);
-  width: 35%;
-  max-height: 80vh;
-  overflow-y: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(135deg, var(--secondary-burgundy-dark), var(--accent-forest-dark));
+    border: 3px solid var(--primary-gold);
+    border-radius: var(--border-radius-xl);
+    width: 35%;
+    max-height: 85vh;
+    overflow-y: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  border-bottom: 2px solid var(--primary-gold);
-  background: linear-gradient(135deg, var(--primary-gold-dark), var(--primary-gold));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 2px solid var(--primary-gold);
+    background: linear-gradient(135deg, var(--primary-gold-dark), var(--primary-gold));
 }
 
 .modal-title {
-  font-family: var(--font-primary);
-  font-size: 1.5rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--text-light);
-  text-shadow: 2px 2px 4px var(--shadow-dark);
-  margin: 0;
+    font-family: var(--font-primary);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--text-light);
+    text-shadow: 2px 2px 4px var(--shadow-dark);
+    margin: 0;
 }
 
 .close-button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--text-light);
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
 }
 
 .close-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
 }
 
 .battle-content {
-  padding: 2rem;
+    padding: 1.5rem;
 }
 
 .loading {
-  text-align: center;
-  color: var(--text-light);
-  font-size: 1.2rem;
-  padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    padding: 2rem;
 }
 
 /* Battle Arena */
 .battle-arena {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--primary-gold);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--primary-gold);
 }
 
 .fighter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 2rem;
 }
 
 .fighter-image {
-  position: relative;
+    position: relative;
 }
 
-.character-orb, .enemy-orb {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 3rem;
-  border: 3px solid var(--primary-gold);
-  box-shadow: 0 0 20px var(--shadow-gold);
-  transition: all 0.3s ease;
+.character-orb,
+.enemy-orb {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem;
+    border: 3px solid var(--primary-gold);
+    box-shadow: 0 0 20px var(--shadow-gold);
+    transition: all 0.3s ease;
 }
-
-.character-orb:hover, .enemy-orb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 30px var(--shadow-gold);
-}
-
-/* Character Types */
-.character-1 { background: linear-gradient(135deg, #4A90E2, #357ABD); }
-.character-2 { background: linear-gradient(135deg, #E74C3C, #C0392B); }
-.character-3 { background: linear-gradient(135deg, #2ECC71, #27AE60); }
 
 /* Enemy Types */
-.enemy-orb.warrior { background: linear-gradient(135deg, #8B4513, #654321); }
-.enemy-orb.assassin { background: linear-gradient(135deg, #4B0082, #301934); }
-.enemy-orb.tank { background: linear-gradient(135deg, #708090, #2F4F4F); }
-.enemy-orb.boss { background: linear-gradient(135deg, #FFD700, #FFA500); }
+.enemy-orb.warrior {
+    background: linear-gradient(135deg, #8B4513, #654321);
+}
+
+.enemy-orb.assassin {
+    background: linear-gradient(135deg, #4B0082, #301934);
+}
+
+.enemy-orb.tank {
+    background: linear-gradient(135deg, #708090, #2F4F4F);
+}
+
+.enemy-orb.boss {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+}
 
 .fighter-info {
-  text-align: center;
-  color: var(--text-light);
+    text-align: center;
+    color: var(--text-light);
 }
 
 .fighter-name {
-  font-family: var(--font-primary);
-  font-size: 1.3rem;
-  font-weight: var(--font-weight-bold);
-  margin-bottom: 0.5rem;
-  color: var(--primary-gold);
+    font-family: var(--font-primary);
+    font-size: 1.3rem;
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 0.5rem;
+    color: var(--primary-gold);
 }
 
 .fighter-level {
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
-  color: var(--text-light);
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+    color: var(--text-light);
 }
 
 .fighter-type {
-  font-size: 0.9rem;
-  color: var(--neutral-stone-light);
-  text-transform: capitalize;
+    font-size: 0.9rem;
+    color: var(--neutral-stone-light);
+    text-transform: capitalize;
 }
 
 .vs-separator {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .vs-text {
-  font-family: var(--font-primary);
-  font-size: 2.5rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--primary-gold);
-  text-shadow: 2px 2px 4px var(--shadow-dark);
-  padding: 1rem;
-  border: 2px solid var(--primary-gold);
-  border-radius: 50%;
-  background: rgba(212, 175, 55, 0.1);
+    font-family: var(--font-primary);
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--primary-gold);
+    text-shadow: 2px 2px 4px var(--shadow-dark);
+    padding: 1rem;
+    border: 2px solid var(--primary-gold);
+    border-radius: 50%;
+    background: rgba(212, 175, 55, 0.1);
 }
 
 /* Stats Comparison */
 .stats-comparison {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-bottom: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
 .stats-section {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: var(--border-radius-lg);
-  padding: 1.5rem;
-  border: 1px solid var(--primary-gold);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--primary-gold);
 }
 
 .stats-section h4 {
-  font-family: var(--font-primary);
-  font-size: 1.3rem;
-  color: var(--primary-gold);
-  text-align: center;
-  margin-bottom: 1rem;
-  text-shadow: 1px 1px 2px var(--shadow-dark);
+    font-family: var(--font-primary);
+    font-size: 1.3rem;
+    color: var(--primary-gold);
+    text-align: center;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 2px var(--shadow-dark);
 }
 
-.stats-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.stats-grid-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 .stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--border-radius-md);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
-.stat-icon {
-  font-size: 1.2rem;
-  width: 30px;
-  text-align: center;
+.stat-icon-modal {
+    font-size: 1.2rem;
+    width: 30px;
+    text-align: center;
 }
 
-.stat-name {
-  flex: 1;
-  color: var(--text-light);
-  font-weight: var(--font-weight-medium);
+.stat-name-modal {
+    flex: 1;
+    color: var(--text-light);
+    font-weight: var(--font-weight-medium);
 }
 
-.stat-value {
-  color: var(--primary-gold);
-  font-weight: var(--font-weight-bold);
-  font-size: 1.1rem;
+.stat-value-modal {
+    color: var(--primary-gold);
+    font-weight: var(--font-weight-bold);
+    font-size: 1.1rem;
 }
 
 /* Battle Actions */
 .battle-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
 }
 
 .action-button {
-  font-family: var(--font-primary);
-  font-size: 1.2rem;
-  font-weight: var(--font-weight-semibold);
-  padding: 0.75rem 2rem;
-  border: 2px solid var(--primary-gold);
-  border-radius: var(--border-radius-lg);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-shadow: 1px 1px 2px var(--shadow-dark);
+    font-family: var(--font-primary);
+    font-size: 1.2rem;
+    font-weight: var(--font-weight-semibold);
+    padding: 0.75rem 2rem;
+    border: 2px solid var(--primary-gold);
+    border-radius: var(--border-radius-lg);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 1px 1px 2px var(--shadow-dark);
 }
 
 .start-battle {
-  background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
-  color: var(--text-light);
+    background: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
+    color: var(--text-light);
 }
 
 .start-battle:hover {
-  background: linear-gradient(135deg, var(--primary-gold-light), var(--primary-gold));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px var(--shadow-dark);
-}
-
-.cancel-battle {
-  background: linear-gradient(135deg, var(--secondary-burgundy), var(--secondary-burgundy-dark));
-  color: var(--text-light);
-}
-
-.cancel-battle:hover {
-  background: linear-gradient(135deg, var(--secondary-burgundy-light), var(--secondary-burgundy));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px var(--shadow-dark);
+    background: linear-gradient(135deg, var(--primary-gold-light), var(--primary-gold));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-dark);
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .modal-battle {
-    width: 95%;
-    margin: 1rem;
-  }
+    .modal-battle {
+        width: 95%;
+        margin: 1rem;
+    }
 
-  .modal-title {
-    font-size: 1.5rem;
-  }
+    .modal-title {
+        font-size: 1.5rem;
+    }
 
-  .battle-arena {
-    flex-direction: column;
-    gap: 1rem;
-  }
+    .battle-arena {
+        flex-direction: column;
+        gap: 1rem;
+    }
 
-  .vs-separator {
-    order: 1;
-  }
+    .vs-separator {
+        order: 1;
+    }
 
-  .vs-text {
-    font-size: 2rem;
-  }
+    .vs-text {
+        font-size: 2rem;
+    }
 
-  .character-orb, .enemy-orb {
-    width: 80px;
-    height: 80px;
-    font-size: 2.5rem;
-  }
+    .character-orb,
+    .enemy-orb {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+    }
 
-  .stats-comparison {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+    .stats-comparison {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 
-  .battle-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
+    .battle-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 
-  .action-button {
-    width: 100%;
-  }
+    .action-button {
+        width: 100%;
+    }
 }

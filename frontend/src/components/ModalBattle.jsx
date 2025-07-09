@@ -105,7 +105,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     </div>
                   </div>
                   <div className="fighter-info">
-                    <h3 className="fighter-name">{user.email}</h3>
+                    <h3 className="fighter-name">{profile?.character_name}</h3>
                     <p className="fighter-level">Level {profile?.level || 1}</p>
                     <p className="fighter-type">{characterData?.name || 'Warrior'}</p>
                   </div>
@@ -135,62 +135,62 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
               <div className="stats-comparison">
                 <div className="stats-section player-stats">
                   <h4>Your Stats</h4>
-                  <div className="stats-grid">
+                  <div className="stats-grid-modal">
                     <div className="stat-item">
-                      <span className="stat-icon">❤️</span>
-                      <span className="stat-name">HP</span>
-                      <span className="stat-value">{playerStats?.hp || 0}</span>
+                      <span className="stat-icon-modal">❤️</span>
+                      <span className="stat-name-modal">HP</span>
+                      <span className="stat-value-modal">{playerStats?.hp || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">⚔️</span>
-                      <span className="stat-name">Attack</span>
-                      <span className="stat-value">{playerStats?.attack || 0}</span>
+                      <span className="stat-icon-modal">⚔️</span>
+                      <span className="stat-name-modal">Attack</span>
+                      <span className="stat-value-modal">{playerStats?.attack || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">🛡️</span>
-                      <span className="stat-name">Defense</span>
-                      <span className="stat-value">{playerStats?.defense || 0}</span>
+                      <span className="stat-icon-modal">🛡️</span>
+                      <span className="stat-name-modal">Defense</span>
+                      <span className="stat-value-modal">{playerStats?.defense || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">💥</span>
-                      <span className="stat-name">Critical</span>
-                      <span className="stat-value">{playerStats?.critical || 0}</span>
+                      <span className="stat-icon-modal">💥</span>
+                      <span className="stat-name-modal">Critical</span>
+                      <span className="stat-value-modal">{playerStats?.critical || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">💨</span>
-                      <span className="stat-name">Speed</span>
-                      <span className="stat-value">{playerStats?.speed || 0}</span>
+                      <span className="stat-icon-modal">💨</span>
+                      <span className="stat-name-modal">Speed</span>
+                      <span className="stat-value-modal">{playerStats?.speed || 0}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="stats-section enemy-stats">
+                <div className="stats-section enemy-stats-modal">
                   <h4>Enemy Stats</h4>
-                  <div className="stats-grid">
+                  <div className="stats-grid-modal">
                     <div className="stat-item">
-                      <span className="stat-icon">❤️</span>
-                      <span className="stat-name">HP</span>
-                      <span className="stat-value">{enemyStats?.hp || 0}</span>
+                      <span className="stat-icon-modal">❤️</span>
+                      <span className="stat-name-modal">HP</span>
+                      <span className="stat-value-modal">{enemyStats?.hp || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">⚔️</span>
-                      <span className="stat-name">Attack</span>
-                      <span className="stat-value">{enemyStats?.attack || 0}</span>
+                      <span className="stat-icon-modal">⚔️</span>
+                      <span className="stat-name-modal">Attack</span>
+                      <span className="stat-value-modal">{enemyStats?.attack || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">🛡️</span>
-                      <span className="stat-name">Defense</span>
-                      <span className="stat-value">{enemyStats?.defense || 0}</span>
+                      <span className="stat-icon-modal">🛡️</span>
+                      <span className="stat-name-modal">Defense</span>
+                      <span className="stat-value-modal">{enemyStats?.defense || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">💥</span>
-                      <span className="stat-name">Critical</span>
-                      <span className="stat-value">{enemyStats?.critical || 0}</span>
+                      <span className="stat-icon-modal">💥</span>
+                      <span className="stat-name-modal">Critical</span>
+                      <span className="stat-value-modal">{enemyStats?.critical || 0}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-icon">💨</span>
-                      <span className="stat-name">Speed</span>
-                      <span className="stat-value">{enemyStats?.speed || 0}</span>
+                      <span className="stat-icon-modal">💨</span>
+                      <span className="stat-name-modal">Speed</span>
+                      <span className="stat-value-modal">{enemyStats?.speed || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -200,9 +200,6 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
               <div className="battle-actions">
                 <button className="action-button start-battle">
                   Start Battle
-                </button>
-                <button className="action-button cancel-battle" onClick={onClose}>
-                  Cancel
                 </button>
               </div>
             </>
