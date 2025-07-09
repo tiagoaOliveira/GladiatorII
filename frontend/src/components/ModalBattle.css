@@ -1,4 +1,3 @@
-/* Modal Battle Styles */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -19,7 +18,7 @@
     border-radius: var(--border-radius-xl);
     width: 35%;
     max-height: 85vh;
-    overflow-y: hidden;
+    overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
@@ -74,7 +73,6 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
-
     background: rgba(0, 0, 0, 0.3);
     border-radius: var(--border-radius-lg);
     border: 1px solid var(--primary-gold);
@@ -90,6 +88,10 @@
 
 .fighter-image {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .character-orb,
@@ -104,6 +106,42 @@
     border: 3px solid var(--primary-gold);
     box-shadow: 0 0 20px var(--shadow-gold);
     transition: all 0.3s ease;
+}
+
+/* HP Bar */
+.hp-bar {
+    position: relative;
+    width: 120px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--primary-gold);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.hp-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 8px;
+}
+
+.hp-fill.player-hp {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.hp-fill.enemy-hp {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.hp-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--text-light);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* Enemy Types */
@@ -222,6 +260,10 @@
     color: var(--primary-gold);
     font-weight: var(--font-weight-bold);
     font-size: 1.1rem;
+}
+
+.battle-results, .battle-log, .battle-info {
+    color: white;
 }
 
 /* Battle Actions */
