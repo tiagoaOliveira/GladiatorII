@@ -2,35 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClientFront';
 import './CharacterModal.css';
 
-const CHARACTERS = {
-  1: {
-    name: 'Ninja',
-    bgImage: 'speed.png',
-    hp: 80,
-    attack: 90,
-    defense: 60,
-    critical: 85,
-    speed: 95
-  },
-  2: {
-    name: 'Warrior',
-    bgImage: 'warrior.png',
-    hp: 100,
-    attack: 85,
-    defense: 90,
-    critical: 70,
-    speed: 65
-  },
-  3: {
-    name: 'Tank',
-    bgImage: 'champion.png',
-    hp: 120,
-    attack: 70,
-    defense: 100,
-    critical: 60,
-    speed: 55
-  }
-};
 
 function StatsDisplay({ profile }) {
   return (
@@ -90,8 +61,8 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
       return;
     }
 
-    if (!/^[A-Z0-9_.-]+$/.test(characterName)) {
-      setError('Nome deve conter apenas A-Z, 0-9, _, -, .');
+    if (!/^[a-zA-Z0-9_.-]+$/.test(characterName)) {
+      setError('Nome deve conter apenas a-Z, 0-9, _, -, .');
       return;
     }
 
@@ -144,7 +115,7 @@ export default function CharacterModal({ user, isOpen, onClose, onCharacterChang
             <input
               type="text"
               value={characterName}
-              onChange={(e) => setCharacterName(e.target.value.toUpperCase())}
+              onChange={(e) => setCharacterName(e.target.value)}
               className="name-input"
               placeholder="ENTER NAME (A-Z, 0-9, _-.)"
               maxLength={20}

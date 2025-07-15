@@ -116,7 +116,7 @@ export default function PveBattle() {
               color: 'var(--text-light)',
               fontSize: '1.5rem'
             }}>
-              Carregando inimigos...
+              Loading...
             </div>
           </div>
         </div>

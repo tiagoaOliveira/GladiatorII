@@ -10,7 +10,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
   const [characterData, setCharacterData] = useState(null);
   const [playerStats, setPlayerStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Estados da batalha
   const [battleState, setBattleState] = useState('preparation'); // preparation, fighting, ended
   const [battleSystem, setBattleSystem] = useState(null);
@@ -73,21 +73,26 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
   const handleBattleEnd = async (result) => {
     setBattleResult(result);
     setBattleState('ended');
-    
+
     // Se vitória, atualizar XP e Gold do jogador
     if (result.result === 'victory') {
       try {
         const newXp = (profile.xp || 0) + enemy.xp_reward;
         const newGold = (profile.gold || 0) + enemy.gold_reward;
-        
-        await supabase
+
+        const { error: updateError } = await supabase
           .from('profiles')
-          .update({ 
-            xp: newXp, 
-            gold: newGold 
+          .update({
+            xp: newXp,
+            gold: newGold
           })
           .eq('id', user.id);
-        
+
+        if (updateError) {
+          console.error('Erro ao atualizar perfil:', updateError);
+          // Não quebrar o fluxo, apenas logar
+        }
+
         // Atualizar perfil local
         setProfile(prev => ({
           ...prev,
@@ -102,20 +107,20 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
 
   const startBattle = () => {
     if (!playerStats || !enemyStats) return;
-    
+
     const battle = new BattleSystem(
       playerStats,
       enemyStats,
       handleBattleUpdate,
       handleBattleEnd
     );
-    
+
     setBattleSystem(battle);
     setBattleState('fighting');
     setBattleData(null);
     setBattleResult(null);
     setBattleLog([]);
-    
+
     battle.startBattle();
   };
 
@@ -185,8 +190,8 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     </div>
                     {battleData && (
                       <div className="hp-bar">
-                        <div 
-                          className="hp-fill player-hp" 
+                        <div
+                          className="hp-fill player-hp"
                           style={{ width: `${battleData.player.hpPercent}%` }}
                         />
                         <span className="hp-text">
@@ -215,8 +220,8 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     </div>
                     {battleData && (
                       <div className="hp-bar">
-                        <div 
-                          className="hp-fill enemy-hp" 
+                        <div
+                          className="hp-fill enemy-hp"
                           style={{ width: `${battleData.enemy.hpPercent}%` }}
                         />
                         <span className="hp-text">
@@ -318,14 +323,12 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                       <p>Duration: {formatTime(Date.now() - battleSystem.battleStartTime)}</p>
                     )}
                   </div>
-                  
+
                   {/* Log da Batalha */}
                   <div className="battle-log">
-                    <h5>Battle Log</h5>
                     <div className="log-entries">
                       {battleLog.slice(-5).map((entry, index) => (
                         <div key={index} className={`log-entry ${entry.isCritical ? 'critical' : ''}`}>
-                          <span className="log-time">{formatTime(entry.timestamp)}</span>
                           <span className="log-text">
                             {entry.attacker} dealt {entry.damage} damage to {entry.defender}
                             {entry.isCritical && <span className="critical-text"> CRITICAL!</span>}
@@ -343,7 +346,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     <h3>{battleResult.result === 'victory' ? '🏆 VICTORY!' : '💀 DEFEAT!'}</h3>
                     <p>Battle Duration: {formatTime(battleResult.duration)}</p>
                   </div>
-                  
+
                   {battleResult.result === 'victory' && (
                     <div className="rewards">
                       <h4>Rewards:</h4>
@@ -359,7 +362,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="battle-actions">
                     <button className="action-button start-battle" onClick={resetBattle}>
                       Fight Again

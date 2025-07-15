@@ -1,0 +1,88 @@
+-- Tabela de poderes disponíveis
+CREATE TABLE powers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  activation_chance INTEGER NOT NULL,
+  price INTEGER NOT NULL DEFAULT 100,
+  min_level INTEGER NOT NULL DEFAULT 1,
+  icon VARCHAR(10) DEFAULT '⚡',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Inserir os poderes do powers.txt
+INSERT INTO powers (name, description, activation_chance, price, min_level, icon) VALUES
+('Faca Rápida', 'Golpeia duas vezes rapidamente com 60% do dano base.', 20, 150, 1, '⚡'),
+('Ataque Perfuro-Cortante', 'Ignora defesa do inimigo.', 15, 200, 3, '🗡️'),
+('Frenesi', 'Duplica velocidade de ataque por 3 segundos.', 15, 180, 2, '💨'),
+('Fúria', 'Garante +30% de chance de crítico nos próximos 2 ataques. Perde 10% do HP máximo ao ativar.', 25, 250, 4, '🔥'),
+('Berserker', 'Sempre que o HP estiver abaixo de 30%, o dano aumenta +20%.', 100, 300, 5, '😤'),
+('Reflexão Total', 'Devolve 100% do dano recebido ao atacante.', 10, 400, 6, '🛡️'),
+('Guardião Imortal', 'Ao receber um golpe fatal, resiste com 1 de HP. Só pode ativar uma vez por combate.', 100, 500, 8, '💀');
+
+-- Tabela de poderes do usuário
+CREATE TABLE user_powers (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  power_id INTEGER REFERENCES powers(id) ON DELETE CASCADE,
+  slot_position INTEGER CHECK (slot_position >= 1 AND slot_position <= 3),
+  acquired_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, power_id),
+  UNIQUE(user_id, slot_position)
+);
+
+-- Função para obter poderes do usuário
+CREATE OR REPLACE FUNCTION get_user_powers(user_id_param UUID)
+RETURNS TABLE (
+  slot_1_power_id INTEGER,
+  slot_1_power_name VARCHAR,
+  slot_1_power_description TEXT,
+  slot_1_power_icon VARCHAR,
+  slot_1_activation_chance INTEGER,
+  slot_2_power_id INTEGER,
+  slot_2_power_name VARCHAR,
+  slot_2_power_description TEXT,
+  slot_2_power_icon VARCHAR,
+  slot_2_activation_chance INTEGER,
+  slot_3_power_id INTEGER,
+  slot_3_power_name VARCHAR,
+  slot_3_power_description TEXT,
+  slot_3_power_icon VARCHAR,
+  slot_3_activation_chance INTEGER
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    MAX(CASE WHEN up.slot_position = 1 THEN p.id END) as slot_1_power_id,
+    MAX(CASE WHEN up.slot_position = 1 THEN p.name END) as slot_1_power_name,
+    MAX(CASE WHEN up.slot_position = 1 THEN p.description END) as slot_1_power_description,
+    MAX(CASE WHEN up.slot_position = 1 THEN p.icon END) as slot_1_power_icon,
+    MAX(CASE WHEN up.slot_position = 1 THEN p.activation_chance END) as slot_1_activation_chance,
+    MAX(CASE WHEN up.slot_position = 2 THEN p.id END) as slot_2_power_id,
+    MAX(CASE WHEN up.slot_position = 2 THEN p.name END) as slot_2_power_name,
+    MAX(CASE WHEN up.slot_position = 2 THEN p.description END) as slot_2_power_description,
+    MAX(CASE WHEN up.slot_position = 2 THEN p.icon END) as slot_2_power_icon,
+    MAX(CASE WHEN up.slot_position = 2 THEN p.activation_chance END) as slot_2_activation_chance,
+    MAX(CASE WHEN up.slot_position = 3 THEN p.id END) as slot_3_power_id,
+    MAX(CASE WHEN up.slot_position = 3 THEN p.name END) as slot_3_power_name,
+    MAX(CASE WHEN up.slot_position = 3 THEN p.description END) as slot_3_power_description,
+    MAX(CASE WHEN up.slot_position = 3 THEN p.icon END) as slot_3_power_icon,
+    MAX(CASE WHEN up.slot_position = 3 THEN p.activation_chance END) as slot_3_activation_chance
+  FROM user_powers up
+  JOIN powers p ON up.power_id = p.id
+  WHERE up.user_id = user_id_param;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Políticas RLS
+ALTER TABLE powers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_powers ENABLE ROW LEVEL SECURITY;
+
+-- Todos podem ver os poderes
+CREATE POLICY "Anyone can view powers" ON powers FOR SELECT USING (true);
+
+-- Usuários podem ver apenas seus próprios poderes
+CREATE POLICY "Users can view own powers" ON user_powers FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own powers" ON user_powers FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own powers" ON user_powers FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own powers" ON user_powers FOR DELETE USING (auth.uid() = user_id);

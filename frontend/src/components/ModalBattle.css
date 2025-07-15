@@ -262,10 +262,6 @@
     font-size: 1.1rem;
 }
 
-.battle-results, .battle-log, .battle-info {
-    color: white;
-}
-
 /* Battle Actions */
 .battle-actions {
     display: flex;
@@ -294,6 +290,64 @@
     background: linear-gradient(135deg, var(--primary-gold-light), var(--primary-gold));
     transform: translateY(-2px);
     box-shadow: 0 4px 8px var(--shadow-dark);
+}
+
+/* Battle Log Styles */
+.battle-log {
+  margin-top: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--primary-gold);
+  border-radius: var(--border-radius-lg);
+  padding: 1rem;
+}
+
+.battle-log h5 {
+  color: var(--primary-gold);
+  font-family: var(--font-primary);
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.log-entries {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--neutral-stone);
+}
+
+.log-entry.critical {
+  border-left-color: var(--error-red);
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.log-time {
+  color: var(--neutral-stone-light);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  min-width: 40px;
+}
+
+.log-text {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.critical-text {
+  color: var(--error-red);
+  font-weight: var(--font-weight-bold);
+  text-shadow: 0 0 5px var(--error-red);
 }
 
 /* Responsive Design */
