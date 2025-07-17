@@ -86,3 +86,113 @@ CREATE POLICY "Users can view own powers" ON user_powers FOR SELECT USING (auth.
 CREATE POLICY "Users can insert own powers" ON user_powers FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own powers" ON user_powers FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own powers" ON user_powers FOR DELETE USING (auth.uid() = user_id);
+
+================================
+
+DROP TABLE IF EXISTS user_powers;
+
+CREATE TABLE user_powers (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  -- Poderes possuídos (array de IDs)
+  owned_powers INTEGER[] DEFAULT '{}',
+  -- Poderes equipados nos slots
+  equipped_power_1 INTEGER REFERENCES powers(id),
+  equipped_power_2 INTEGER REFERENCES powers(id),
+  equipped_power_3 INTEGER REFERENCES powers(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Função para adicionar um poder ao usuário
+CREATE OR REPLACE FUNCTION add_power_to_user(user_id_param UUID, power_id_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+  user_exists BOOLEAN;
+BEGIN
+  -- Verificar se o usuário já tem registro
+  SELECT EXISTS(SELECT 1 FROM user_powers WHERE user_id = user_id_param) INTO user_exists;
+  
+  IF NOT user_exists THEN
+    -- Criar registro do usuário
+    INSERT INTO user_powers (user_id, owned_powers) 
+    VALUES (user_id_param, ARRAY[power_id_param]);
+  ELSE
+    -- Adicionar poder ao array se não existir
+    UPDATE user_powers 
+    SET owned_powers = array_append(owned_powers, power_id_param),
+        updated_at = NOW()
+    WHERE user_id = user_id_param 
+    AND NOT (power_id_param = ANY(owned_powers));
+  END IF;
+  
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para equipar poder em slot específico
+CREATE OR REPLACE FUNCTION equip_power(user_id_param UUID, power_id_param INTEGER, slot_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+  slot_column TEXT;
+  has_power BOOLEAN;
+BEGIN
+  -- Verificar se o usuário possui o poder
+  SELECT power_id_param = ANY(owned_powers) INTO has_power
+  FROM user_powers 
+  WHERE user_id = user_id_param;
+  
+  IF NOT has_power THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- Determinar coluna do slot
+  CASE slot_param
+    WHEN 1 THEN slot_column := 'equipped_power_1';
+    WHEN 2 THEN slot_column := 'equipped_power_2';
+    WHEN 3 THEN slot_column := 'equipped_power_3';
+    ELSE RETURN FALSE;
+  END CASE;
+  
+  -- Atualizar o slot
+  EXECUTE format('UPDATE user_powers SET %I = $1, updated_at = NOW() WHERE user_id = $2', slot_column)
+  USING power_id_param, user_id_param;
+  
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Função para remover poder do slot
+CREATE OR REPLACE FUNCTION unequip_power(user_id_param UUID, slot_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+  slot_column TEXT;
+BEGIN
+  -- Determinar coluna do slot
+  CASE slot_param
+    WHEN 1 THEN slot_column := 'equipped_power_1';
+    WHEN 2 THEN slot_column := 'equipped_power_2';
+    WHEN 3 THEN slot_column := 'equipped_power_3';
+    ELSE RETURN FALSE;
+  END CASE;
+  
+  -- Remover do slot
+  EXECUTE format('UPDATE user_powers SET %I = NULL, updated_at = NOW() WHERE user_id = $1', slot_column)
+  USING user_id_param;
+  
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Políticas RLS
+ALTER TABLE user_powers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own powers" ON user_powers FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own powers" ON user_powers FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own powers" ON user_powers FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own powers" ON user_powers FOR DELETE USING (auth.uid() = user_id);
+
+-- Criar registros iniciais para usuários existentes (se necessário)
+INSERT INTO user_powers (user_id, owned_powers)
+SELECT id, '{}'::integer[]
+FROM auth.users
+WHERE id NOT IN (SELECT user_id FROM user_powers);

@@ -101,6 +101,7 @@
   transform: translateY(0);
   opacity: 1;
   visibility: visible;
+  z-index: 15;
 }
 
 .mobile-nav-content {
@@ -156,7 +157,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 10;
 }
 
 /* Conteúdo principal */

@@ -18,6 +18,7 @@ export default function Perfil() {
   const [availablePowers, setAvailablePowers] = useState([]);
   const [showPowerSelector, setShowPowerSelector] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [powerActionLoading, setPowerActionLoading] = useState(false);
 
   const calculateStats = (characterData, level) => {
     const growthRates = {
@@ -36,95 +37,154 @@ export default function Perfil() {
     };
   };
 
+  // Função para carregar poderes do usuário com nova estrutura
   const loadUserPowers = async () => {
     try {
-      const { data } = await supabase.rpc('get_user_powers', { user_id_param: user.id });
-      if (data && data.length > 0) {
-        setUserPowers({
-          slot_1: data[0].slot_1_power_id ? {
-            id: data[0].slot_1_power_id,
-            name: data[0].slot_1_power_name,
-            icon: data[0].slot_1_power_icon
-          } : null,
-          slot_2: data[0].slot_2_power_id ? {
-            id: data[0].slot_2_power_id,
-            name: data[0].slot_2_power_name,
-            icon: data[0].slot_2_power_icon
-          } : null,
-          slot_3: data[0].slot_3_power_id ? {
-            id: data[0].slot_3_power_id,
-            name: data[0].slot_3_power_name,
-            icon: data[0].slot_3_power_icon
-          } : null
-        });
+      const { data, error } = await supabase
+        .from('user_powers')
+        .select(`
+          equipped_power_1,
+          equipped_power_2,
+          equipped_power_3,
+          owned_powers
+        `)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Erro ao carregar poderes:', error);
+        return;
       }
+
+      // Se não há registro, criar um vazio
+      if (!data) {
+        const { error: insertError } = await supabase
+          .from('user_powers')
+          .insert([{ user_id: user.id, owned_powers: [] }]);
+
+        if (insertError) {
+          console.error('Erro ao criar registro de poderes:', insertError);
+          return;
+        }
+        
+        setUserPowers({ slot_1: null, slot_2: null, slot_3: null });
+        setAvailablePowers([]);
+        return;
+      }
+
+      // Carregar detalhes dos poderes equipados
+      const equippedPowerIds = [
+        data.equipped_power_1,
+        data.equipped_power_2,
+        data.equipped_power_3
+      ].filter(id => id !== null);
+
+      let equippedPowersData = [];
+      if (equippedPowerIds.length > 0) {
+        const { data: powersData, error: powersError } = await supabase
+          .from('powers')
+          .select('id, name, icon, description')
+          .in('id', equippedPowerIds);
+
+        if (powersError) {
+          console.error('Erro ao carregar detalhes dos poderes:', powersError);
+        } else {
+          equippedPowersData = powersData;
+        }
+      }
+
+      // Montar objeto de poderes equipados
+      const newUserPowers = { slot_1: null, slot_2: null, slot_3: null };
+      
+      for (let i = 1; i <= 3; i++) {
+        const powerId = data[`equipped_power_${i}`];
+        if (powerId) {
+          const powerData = equippedPowersData.find(p => p.id === powerId);
+          if (powerData) {
+            newUserPowers[`slot_${i}`] = powerData;
+          }
+        }
+      }
+
+      setUserPowers(newUserPowers);
+
+      // Carregar poderes disponíveis
+      if (data.owned_powers && data.owned_powers.length > 0) {
+        const { data: availablePowersData, error: availableError } = await supabase
+          .from('powers')
+          .select('id, name, icon, description, activation_chance')
+          .in('id', data.owned_powers);
+
+        if (availableError) {
+          console.error('Erro ao carregar poderes disponíveis:', availableError);
+        } else {
+          setAvailablePowers(availablePowersData || []);
+        }
+      } else {
+        setAvailablePowers([]);
+      }
+
     } catch (error) {
       console.error('Erro ao carregar poderes:', error);
     }
   };
 
-  const loadAvailablePowers = async () => {
-    try {
-      const { data } = await supabase
-        .from('user_powers')
-        .select(`
-        power_id,
-        powers (id, name, icon, description)
-      `)
-        .eq('user_id', user.id)
-        .is('slot_position', null);
-
-      setAvailablePowers(data?.map(item => item.powers) || []);
-    } catch (error) {
-      console.error('Erro ao carregar poderes disponíveis:', error);
-    }
-  };
   const equipPower = async (powerId) => {
+    setPowerActionLoading(true);
     try {
-      // Remove poder atual do slot se houver
-      if (userPowers[`slot_${selectedSlot}`]) {
-        await supabase
-          .from('user_powers')
-          .update({ slot_position: null })
-          .eq('user_id', user.id)
-          .eq('power_id', userPowers[`slot_${selectedSlot}`].id);
+      const { error } = await supabase.rpc('equip_power', {
+        user_id_param: user.id,
+        power_id_param: powerId,
+        slot_param: selectedSlot
+      });
+
+      if (error) {
+        console.error('Erro ao equipar poder:', error);
+        return;
       }
 
-      // Equipar novo poder
-      await supabase
-        .from('user_powers')
-        .update({ slot_position: selectedSlot })
-        .eq('user_id', user.id)
-        .eq('power_id', powerId);
-
       // Recarregar dados
-      loadUserPowers();
-      loadAvailablePowers();
+      await loadUserPowers();
       setShowPowerSelector(false);
     } catch (error) {
       console.error('Erro ao equipar poder:', error);
+    } finally {
+      setPowerActionLoading(false);
     }
   };
-  const unequipPower = async (slot) => {
-    try {
-      await supabase
-        .from('user_powers')
-        .update({ slot_position: null })
-        .eq('user_id', user.id)
-        .eq('power_id', userPowers[`slot_${slot}`].id);
 
-      loadUserPowers();
-      loadAvailablePowers();
+  const unequipPower = async (slot) => {
+    if (!userPowers[`slot_${slot}`]) return;
+
+    setPowerActionLoading(true);
+    try {
+      const { error } = await supabase.rpc('unequip_power', {
+        user_id_param: user.id,
+        slot_param: slot
+      });
+
+      if (error) {
+        console.error('Erro ao desequipar poder:', error);
+        return;
+      }
+
+      await loadUserPowers();
     } catch (error) {
       console.error('Erro ao desequipar poder:', error);
+    } finally {
+      setPowerActionLoading(false);
     }
   };
 
   useEffect(() => {
     if (user) {
       loadProfile();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
       loadUserPowers();
-      loadAvailablePowers();
     }
   }, [user]);
 
@@ -155,7 +215,6 @@ export default function Perfil() {
 
   const loadCharacterData = async () => {
     try {
-      // Carregar apenas dados do tipo de personagem
       const { data: characterTypeData, error: characterError } = await supabase
         .from('character_types')
         .select('*')
@@ -166,7 +225,6 @@ export default function Perfil() {
 
       setCharacterData(characterTypeData);
 
-      // Calcular stats no frontend
       const calculatedStats = calculateStats(characterTypeData, profile.level || 1);
       setCharacterStats(calculatedStats);
     } catch (error) {
@@ -176,7 +234,7 @@ export default function Perfil() {
 
   const handleCharacterChange = (newCharacterType) => {
     setCharacterType(newCharacterType);
-    loadProfile(); // Recarrega o perfil
+    loadProfile();
   };
 
   const changeCharacter = async (direction) => {
@@ -200,17 +258,27 @@ export default function Perfil() {
       if (error) throw error;
 
       setCharacterType(newCharacterType);
+      await loadCharacterData();
     } catch (error) {
       console.error('Erro ao mudar personagem:', error);
     } finally {
       setIsChangingCharacter(false);
     }
-    setCharacterType(newCharacterType);
-    // Recalcular stats para o novo personagem
-    if (characterData) {
-      const calculatedStats = calculateStats(characterData, profile.level || 1);
-      setCharacterStats(calculatedStats);
+  };
+
+  // Função para verificar se um poder está equipado
+  const isPowerEquipped = (powerId) => {
+    return Object.values(userPowers).some(power => power && power.id === powerId);
+  };
+
+  // Função para obter o slot onde o poder está equipado
+  const getPowerSlot = (powerId) => {
+    for (let i = 1; i <= 3; i++) {
+      if (userPowers[`slot_${i}`] && userPowers[`slot_${i}`].id === powerId) {
+        return i;
+      }
     }
+    return null;
   };
 
   if (loading || !characterData || !characterStats) {
@@ -269,13 +337,14 @@ export default function Perfil() {
                 {power ? (
                   <div className="power-item" onClick={() => unequipPower(slot)}>
                     <span className="power-icon">{power.icon}</span>
-                    <span className="power-name">{power.name}</span>
-                    <span className="remove-hint">Clique para remover</span>
                   </div>
                 ) : isUnlocked ? (
                   <div
                     className="power-empty"
                     onClick={() => {
+                      if (availablePowers.length === 0) {
+                        return;
+                      }
                       setSelectedSlot(slot);
                       setShowPowerSelector(true);
                     }}
@@ -301,27 +370,52 @@ export default function Perfil() {
               <h3>Selecione um poder para o Slot {selectedSlot}</h3>
               <div className="available-powers">
                 {availablePowers.length > 0 ? (
-                  availablePowers.map(power => (
-                    <div
-                      key={power.id}
-                      className="selectable-power"
-                      onClick={() => equipPower(power.id)}
-                    >
-                      <span className="power-icon">{power.icon}</span>
-                      <span className="power-name">{power.name}</span>
-                      <p className="power-description">{power.description}</p>
-                    </div>
-                  ))
+                  availablePowers.map(power => {
+                    const isEquipped = isPowerEquipped(power.id);
+                    const equippedSlot = getPowerSlot(power.id);
+                    
+                    return (
+                      <div
+                        key={power.id}
+                        className={`selectable-power ${isEquipped ? 'equipped' : ''}`}
+                        onClick={() => {
+                          if (powerActionLoading) return;
+                          equipPower(power.id);
+                        }}
+                        style={{ 
+                          opacity: powerActionLoading ? 0.6 : 1,
+                          cursor: powerActionLoading ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <span className="power-icon">{power.icon}</span>
+                        <div className="power-details">
+                          <span className="power-name">{power.name}</span>
+                          <p className="power-description">{power.description}</p>
+                          <small style={{ color: 'var(--text-secondary)' }}>
+                            Chance de ativação: {power.activation_chance}%
+                          </small>
+                          {isEquipped && (
+                            <small className="equipped-indicator">
+                              Equipado no Slot {equippedSlot}
+                            </small>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
                   <p>Nenhum poder disponível. Compre poderes na loja!</p>
                 )}
               </div>
-              <button
-                className="close-selector"
-                onClick={() => setShowPowerSelector(false)}
-              >
-                Fechar
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button
+                  className="close-selector"
+                  onClick={() => setShowPowerSelector(false)}
+                  disabled={powerActionLoading}
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
         )}
