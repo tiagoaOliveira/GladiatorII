@@ -305,7 +305,7 @@ const Shop = () => {
                 </button>
               ) : !power.hasGold ? (
                 <button className="power-button disabled" disabled>
-                  Aureus Insuficientes
+                  🪙 Insuficientes
                 </button>
               ) : (
                 <button 

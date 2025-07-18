@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../services/supabaseClientFront';
 import { BattleSystem } from '../services/BattleSystem';
@@ -9,7 +9,9 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
   const [profile, setProfile] = useState(null);
   const [characterData, setCharacterData] = useState(null);
   const [playerStats, setPlayerStats] = useState(null);
+  const [userPowers, setUserPowers] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Estados da batalha
   const [battleState, setBattleState] = useState('preparation'); // preparation, fighting, ended
@@ -17,114 +19,258 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
   const [battleData, setBattleData] = useState(null);
   const [battleResult, setBattleResult] = useState(null);
   const [battleLog, setBattleLog] = useState([]);
+  const [rewardsProcessed, setRewardsProcessed] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && user) {
-      loadPlayerData();
-    }
-  }, [isOpen, user]);
+  // Carregar dados do jogador uma única vez
+  const loadPlayerData = useCallback(async () => {
+    if (!user?.id) return;
 
-  const loadPlayerData = async () => {
     try {
-      // Carregar perfil do jogador
-      const { data: profileData } = await supabase
+      setLoading(true);
+      setError(null);
+
+      // 1. Buscar perfil do jogador
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (profileData) {
-        setProfile(profileData);
-
-        // Carregar dados do tipo de personagem
-        const { data: characterTypeData } = await supabase
-          .from('character_types')
-          .select('*')
-          .eq('id', profileData.character_type || 1)
-          .single();
-
-        if (characterTypeData) {
-          setCharacterData(characterTypeData);
-
-          // Calcular stats do jogador
-          const { data: statsData } = await supabase
-            .rpc('calculate_character_stats', {
-              character_type_id: profileData.character_type || 1,
-              level: profileData.level || 1
-            });
-
-          if (statsData && statsData.length > 0) {
-            setPlayerStats(statsData[0]);
-          }
-        }
+      if (profileError) {
+        throw new Error(`Erro ao carregar perfil: ${profileError.message}`);
       }
+
+      if (!profileData) {
+        throw new Error('Perfil não encontrado');
+      }
+
+      setProfile(profileData);
+
+      // 2. Buscar dados do tipo de personagem
+      const { data: characterTypeData, error: characterTypeError } = await supabase
+        .from('character_types')
+        .select('*')
+        .eq('id', profileData.character_type || 1)
+        .single();
+
+      if (characterTypeError) {
+        console.warn('Erro ao carregar tipo de personagem:', characterTypeError);
+        // Usar dados padrão se não encontrar
+        setCharacterData({
+          id: 1,
+          name: 'Warrior',
+          bg_image: null,
+          base_hp: 100,
+          base_attack: 20,
+          base_defense: 15,
+          base_critical: 5,
+          base_speed: 10,
+          hp_per_level: 10,
+          attack_per_level: 2,
+          defense_per_level: 1,
+          critical_per_level: 0.5,
+          speed_per_level: 1
+        });
+      } else {
+        setCharacterData(characterTypeData);
+      }
+
+      // 3. Calcular stats do jogador
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('calculate_character_stats', {
+          character_type_id: profileData.character_type || 1,
+          level: profileData.level || 1
+        });
+
+      if (statsError) {
+        throw new Error(`Erro ao calcular stats: ${statsError.message}`);
+      }
+
+      if (statsData && statsData.length > 0) {
+        setPlayerStats(statsData[0]);
+      } else {
+        // Calcular stats manualmente se a função RPC falhar
+        const level = profileData.level || 1;
+        const charType = characterTypeData || {
+          base_hp: 100,
+          base_attack: 20,
+          base_defense: 15,
+          base_critical: 5,
+          base_speed: 10,
+          hp_per_level: 10,
+          attack_per_level: 2,
+          defense_per_level: 1,
+          critical_per_level: 0.5,
+          speed_per_level: 1
+        };
+
+        setPlayerStats({
+          hp: Math.floor(charType.base_hp + (charType.hp_per_level * (level - 1))),
+          attack: Math.floor(charType.base_attack + (charType.attack_per_level * (level - 1))),
+          defense: Math.floor(charType.base_defense + (charType.defense_per_level * (level - 1))),
+          critical: Math.floor(charType.base_critical + (charType.critical_per_level * (level - 1))),
+          speed: Math.floor(charType.base_speed + (charType.speed_per_level * (level - 1)))
+        });
+      }
+
+      // 4. Carregar poderes do usuário
+      const { data: userPowersData, error: userPowersError } = await supabase
+        .from('user_powers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (userPowersError && userPowersError.code !== 'PGRST116') {
+        console.warn('Erro ao carregar poderes do usuário:', userPowersError);
+      } else if (userPowersData) {
+        // Buscar detalhes dos poderes equipados
+        const powerPromises = [];
+        const powersData = { ...userPowersData };
+
+        if (userPowersData.equipped_power_1) {
+          powerPromises.push(
+            supabase
+              .from('powers')
+              .select('*')
+              .eq('id', userPowersData.equipped_power_1)
+              .single()
+              .then(result => ({ slot: 'power_1', data: result.data, error: result.error }))
+          );
+        }
+
+        if (userPowersData.equipped_power_2) {
+          powerPromises.push(
+            supabase
+              .from('powers')
+              .select('*')
+              .eq('id', userPowersData.equipped_power_2)
+              .single()
+              .then(result => ({ slot: 'power_2', data: result.data, error: result.error }))
+          );
+        }
+
+        if (userPowersData.equipped_power_3) {
+          powerPromises.push(
+            supabase
+              .from('powers')
+              .select('*')
+              .eq('id', userPowersData.equipped_power_3)
+              .single()
+              .then(result => ({ slot: 'power_3', data: result.data, error: result.error }))
+          );
+        }
+
+        if (powerPromises.length > 0) {
+          const powerResults = await Promise.all(powerPromises);
+          
+          powerResults.forEach(result => {
+            if (!result.error && result.data) {
+              powersData[result.slot] = result.data;
+            }
+          });
+        }
+
+        setUserPowers(powersData);
+      }
+
     } catch (error) {
-      console.error('Erro ao carregar dados do jogador:', error);
+      console.error('Erro ao carregar dados:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const handleBattleUpdate = (data) => {
+  // Carregar dados quando o modal abrir
+  useEffect(() => {
+    if (isOpen && user) {
+      loadPlayerData();
+    }
+  }, [isOpen, loadPlayerData, user]);
+
+  // Limpar estados quando o modal fechar
+  useEffect(() => {
+    if (!isOpen) {
+      resetBattle();
+      setError(null);
+      setRewardsProcessed(false);
+    }
+  }, [isOpen]);
+
+  const handleBattleUpdate = useCallback((data) => {
     setBattleData(data);
-    setBattleLog(data.log);
-  };
+    setBattleLog(data.log || []);
+  }, []);
 
-  const handleBattleEnd = async (result) => {
+  const handleBattleEnd = useCallback(async (result) => {
     setBattleResult(result);
     setBattleState('ended');
 
-    // Se vitória, atualizar XP e Gold do jogador
-    if (result.result === 'victory') {
+    // Processar recompensas apenas uma vez
+    if (result.result === 'victory' && !rewardsProcessed) {
+      setRewardsProcessed(true);
+      
+      // Implementar sistema de recompensas
       try {
-        const newXp = (profile.xp || 0) + enemy.xp_reward;
-        const newGold = (profile.gold || 0) + enemy.gold_reward;
-
+        const newXp = (profile.xp || 0) + (enemy.xp_reward || 100);
+        const newGold = (profile.gold || 0) + (enemy.gold_reward || 50);
+        
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({
-            xp: newXp,
-            gold: newGold
-          })
+          .update({ xp: newXp, gold: newGold })
           .eq('id', user.id);
-
-        if (updateError) {
-          console.error('Erro ao atualizar perfil:', updateError);
-          // Não quebrar o fluxo, apenas logar
+        
+        if (!updateError) {
+          setProfile(prev => ({ ...prev, xp: newXp, gold: newGold }));
         }
-
-        // Atualizar perfil local
-        setProfile(prev => ({
-          ...prev,
-          xp: newXp,
-          gold: newGold
-        }));
       } catch (error) {
-        console.error('Erro ao atualizar recompensas:', error);
+        console.error('Erro ao processar recompensas:', error);
       }
     }
-  };
+  }, [rewardsProcessed, profile, enemy, user]);
 
-  const startBattle = () => {
-    if (!playerStats || !enemyStats) return;
+  const startBattle = useCallback(() => {
+    if (!playerStats || !enemyStats) {
+      setError('Dados de batalha incompletos');
+      return;
+    }
 
-    const battle = new BattleSystem(
-      playerStats,
-      enemyStats,
-      handleBattleUpdate,
-      handleBattleEnd
-    );
+    try {
+      // Parar batalha anterior se existir
+      if (battleSystem) {
+        battleSystem.stopBattle();
+      }
 
-    setBattleSystem(battle);
-    setBattleState('fighting');
-    setBattleData(null);
-    setBattleResult(null);
-    setBattleLog([]);
+      // Criar sistema de batalha com poderes
+      const equippedPowers = [];
+      if (userPowers?.power_1) equippedPowers.push(userPowers.power_1);
+      if (userPowers?.power_2) equippedPowers.push(userPowers.power_2);
+      if (userPowers?.power_3) equippedPowers.push(userPowers.power_3);
 
-    battle.startBattle();
-  };
+      const battle = new BattleSystem(
+        playerStats,
+        enemyStats,
+        equippedPowers,
+        handleBattleUpdate,
+        handleBattleEnd
+      );
 
-  const resetBattle = () => {
+      setBattleSystem(battle);
+      setBattleState('fighting');
+      setBattleData(null);
+      setBattleResult(null);
+      setBattleLog([]);
+      setError(null);
+      setRewardsProcessed(false);
+
+      battle.startBattle();
+    } catch (error) {
+      console.error('Erro ao iniciar batalha:', error);
+      setError('Erro ao iniciar batalha');
+    }
+  }, [playerStats, enemyStats, userPowers, battleSystem, handleBattleUpdate, handleBattleEnd]);
+
+  const resetBattle = useCallback(() => {
     if (battleSystem) {
       battleSystem.stopBattle();
     }
@@ -133,15 +279,17 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
     setBattleData(null);
     setBattleResult(null);
     setBattleLog([]);
-  };
+    setError(null);
+    setRewardsProcessed(false);
+  }, [battleSystem]);
 
   const getCharacterIcon = (characterType) => {
-    switch (characterType) {
-      case 1: return '🏃‍♂️'; // Assassin
-      case 2: return '⚔️'; // Warrior
-      case 3: return '🛡️'; // Tank
-      default: return '⚔️';
-    }
+    const icons = {
+      1: '🏃‍♂️', // Assassin
+      2: '⚔️',   // Warrior
+      3: '🛡️'    // Tank
+    };
+    return icons[characterType] || '⚔️';
   };
 
   const getEnemyIcon = (enemyType) => {
@@ -161,6 +309,38 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const formatLogEntry = (entry) => {
+    if (entry.type === 'system') {
+      return entry.message;
+    }
+    
+    if (entry.type === 'attack') {
+      let text = `${entry.attacker} dealt ${entry.damage} damage to ${entry.defender}`;
+      
+      if (entry.isCritical) {
+        text += ' CRITICAL!';
+      }
+      
+      return text;
+    }
+    
+    return entry.message || 'Unknown event';
+  };
+
+  const getLogEntryClass = (entry) => {
+    let className = 'log-entry';
+    
+    if (entry.type === 'system' || entry.isPowerActivation) {
+      className += ' power-activated';
+    }
+    
+    if (entry.isCritical) {
+      className += ' critical';
+    }
+    
+    return className;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -176,7 +356,15 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
         <div className="battle-content">
           {loading ? (
             <div className="loading">
+              <div className="loading-spinner"></div>
               <p>Preparing battle...</p>
+            </div>
+          ) : error ? (
+            <div className="error-message">
+              <p>❌ {error}</p>
+              <button className="action-button" onClick={loadPlayerData}>
+                Try Again
+              </button>
             </div>
           ) : (
             <>
@@ -192,7 +380,9 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                       <div className="hp-bar">
                         <div
                           className="hp-fill player-hp"
-                          style={{ width: `${battleData.player.hpPercent}%` }}
+                          style={{ 
+                            width: `${(battleData.player.currentHp / battleData.player.maxHp) * 100}%` 
+                          }}
                         />
                         <span className="hp-text">
                           {battleData.player.currentHp}/{battleData.player.maxHp}
@@ -201,7 +391,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     )}
                   </div>
                   <div className="fighter-info">
-                    <h3 className="fighter-name">{profile?.character_name}</h3>
+                    <h3 className="fighter-name">{profile?.character_name || 'Player'}</h3>
                     <p className="fighter-level">Level {profile?.level || 1}</p>
                     <p className="fighter-type">{characterData?.name || 'Warrior'}</p>
                   </div>
@@ -222,7 +412,9 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                       <div className="hp-bar">
                         <div
                           className="hp-fill enemy-hp"
-                          style={{ width: `${battleData.enemy.hpPercent}%` }}
+                          style={{ 
+                            width: `${(battleData.enemy.currentHp / battleData.enemy.maxHp) * 100}%` 
+                          }}
                         />
                         <span className="hp-text">
                           {battleData.enemy.currentHp}/{battleData.enemy.maxHp}
@@ -264,7 +456,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                         <div className="stat-item">
                           <span className="stat-icon-modal">💥</span>
                           <span className="stat-name-modal">Critical</span>
-                          <span className="stat-value-modal">{playerStats?.critical || 0}</span>
+                          <span className="stat-value-modal">{playerStats?.critical || 0}%</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">💨</span>
@@ -295,7 +487,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                         <div className="stat-item">
                           <span className="stat-icon-modal">💥</span>
                           <span className="stat-name-modal">Critical</span>
-                          <span className="stat-value-modal">{enemyStats?.critical || 0}</span>
+                          <span className="stat-value-modal">{enemyStats?.critical || 0}%</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">💨</span>
@@ -308,7 +500,11 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
 
                   {/* Battle Actions */}
                   <div className="battle-actions">
-                    <button className="action-button start-battle" onClick={startBattle}>
+                    <button 
+                      className="action-button start-battle" 
+                      onClick={startBattle}
+                      disabled={!playerStats || !enemyStats}
+                    >
                       Start Battle
                     </button>
                   </div>
@@ -318,24 +514,37 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
               {battleState === 'fighting' && (
                 <div className="battle-progress">
                   <div className="battle-info">
-                    <h4>Battle in Progress...</h4>
-                    {battleData && (
+                    <h4>⚔️ Battle in Progress...</h4>
+                    {battleSystem && (
                       <p>Duration: {formatTime(Date.now() - battleSystem.battleStartTime)}</p>
                     )}
                   </div>
 
                   {/* Log da Batalha */}
                   <div className="battle-log">
+                    <h5>Battle Log:</h5>
                     <div className="log-entries">
-                      {battleLog.slice(-5).map((entry, index) => (
-                        <div key={index} className={`log-entry ${entry.isCritical ? 'critical' : ''}`}>
-                          <span className="log-text">
-                            {entry.attacker} dealt {entry.damage} damage to {entry.defender}
-                            {entry.isCritical && <span className="critical-text"> CRITICAL!</span>}
-                          </span>
-                        </div>
-                      ))}
+                      {battleLog.length === 0 ? (
+                        <div className="log-entry">Battle starting...</div>
+                      ) : (
+                        battleLog.slice(-8).map((entry, index) => (
+                          <div key={index} className={getLogEntryClass(entry)}>
+                            <span className="log-time">
+                              {formatTime(entry.timestamp)}
+                            </span>
+                            <span className="log-text">
+                              {formatLogEntry(entry)}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
+                  </div>
+
+                  <div className="battle-actions">
+                    <button className="action-button stop-battle" onClick={resetBattle}>
+                      Stop Battle
+                    </button>
                   </div>
                 </div>
               )}
@@ -343,21 +552,40 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
               {battleState === 'ended' && battleResult && (
                 <div className="battle-results">
                   <div className={`result-header ${battleResult.result}`}>
-                    <h3>{battleResult.result === 'victory' ? '🏆 VICTORY!' : '💀 DEFEAT!'}</h3>
+                    <h3>
+                      {battleResult.result === 'victory' ? '🏆 VICTORY!' : '💀 DEFEAT!'}
+                    </h3>
                     <p>Battle Duration: {formatTime(battleResult.duration)}</p>
+                  </div>
+
+                  {/* Log Final da Batalha */}
+                  <div className="battle-log final-log">
+                    <h5>Final Battle Log:</h5>
+                    <div className="log-entries">
+                      {battleLog.slice(-10).map((entry, index) => (
+                        <div key={index} className={getLogEntryClass(entry)}>
+                          <span className="log-time">
+                            {formatTime(entry.timestamp)}
+                          </span>
+                          <span className="log-text">
+                            {formatLogEntry(entry)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {battleResult.result === 'victory' && (
                     <div className="rewards">
-                      <h4>Rewards:</h4>
+                      <h4>🎁 Rewards:</h4>
                       <div className="reward-items">
                         <div className="reward-item">
                           <span className="reward-icon">🏆</span>
-                          <span>+{enemy.xp_reward} XP</span>
+                          <span>+{enemy.xp_reward || 100} XP</span>
                         </div>
                         <div className="reward-item">
                           <span className="reward-icon">💰</span>
-                          <span>+{enemy.gold_reward} Gold</span>
+                          <span>+{enemy.gold_reward || 50} Gold</span>
                         </div>
                       </div>
                     </div>
@@ -366,6 +594,9 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                   <div className="battle-actions">
                     <button className="action-button start-battle" onClick={resetBattle}>
                       Fight Again
+                    </button>
+                    <button className="action-button secondary" onClick={onClose}>
+                      Close
                     </button>
                   </div>
                 </div>

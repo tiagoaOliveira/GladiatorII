@@ -15,14 +15,19 @@ const ENEMY_ICONS = {
 export default function PveBattle() {
   const { user } = useAuth();
   
-  // Estados consolidados
+  // Estados consolidados com loading stages
   const [profile, setProfile] = useState(null);
   const [enemies, setEnemies] = useState([]);
   const [enemyStats, setEnemyStats] = useState({});
   const [selectedEnemy, setSelectedEnemy] = useState(null);
   const [battleResult, setBattleResult] = useState(null);
   const [isBattling, setIsBattling] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loadingStages, setLoadingStages] = useState({
+    profile: true,
+    enemies: true,
+    stats: true,
+    complete: false
+  });
   const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
   const [selectedEnemyForBattle, setSelectedEnemyForBattle] = useState(null);
 
@@ -125,8 +130,6 @@ export default function PveBattle() {
     if (!user?.id) return;
 
     try {
-      setLoading(true);
-      
       // Verificar cache de inimigos primeiro
       const cachedEnemies = getCachedEnemies();
       
@@ -145,9 +148,10 @@ export default function PveBattle() {
       const results = await Promise.all(promises);
       const [profileResult, enemiesResult] = results;
 
-      // Processar perfil
+      // Processar perfil primeiro
       if (profileResult.data) {
         setProfile(profileResult.data);
+        setLoadingStages(prev => ({ ...prev, profile: false }));
       }
 
       // Processar inimigos (do cache ou da consulta)
@@ -170,12 +174,22 @@ export default function PveBattle() {
         }));
       }
 
+      // Marcar inimigos como carregados
+      setLoadingStages(prev => ({ ...prev, enemies: false }));
+
       // Calcular stats para todos os inimigos
       if (enemiesData && enemiesData.length > 0) {
         const enemyIds = enemiesData.map(enemy => enemy.id);
         const statsMap = await calculateMultipleEnemyStats(enemyIds);
         setEnemyStats(statsMap);
       }
+
+      // Marcar tudo como carregado
+      setLoadingStages(prev => ({ 
+        ...prev, 
+        stats: false, 
+        complete: true 
+      }));
 
       setDataCache(prev => ({
         ...prev,
@@ -184,8 +198,13 @@ export default function PveBattle() {
 
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error);
-    } finally {
-      setLoading(false);
+      // Em caso de erro, marcar como carregado para evitar loading infinito
+      setLoadingStages({
+        profile: false,
+        enemies: false,
+        stats: false,
+        complete: true
+      });
     }
   }, [user?.id, getCachedEnemies, calculateMultipleEnemyStats]);
 
@@ -249,20 +268,68 @@ export default function PveBattle() {
     };
   }, [user?.id]);
 
-  if (loading) {
+  // Melhor controle de loading
+  const isInitialLoading = !loadingStages.complete;
+  const hasMinimumData = profile && enemies.length > 0;
+
+  // Loading progressivo
+  if (isInitialLoading) {
     return (
       <Layout>
         <div className="pve-battle-container">
           <div className="pve-content">
-            <div style={{
+            {/* Header sempre visível */}
+            <div className="pve-header">
+              <h1 className="pve-title">PvE Battle Arena</h1>
+              <p className="pve-subtitle">CHOOSE YOUR OPPONENT!</p>
+            </div>
+
+            {/* Loading com progresso */}
+            <div className="loading-container" style={{
               display: 'flex',
+              flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',
               height: '50vh',
               color: 'var(--text-light)',
-              fontSize: '1.5rem'
+              fontSize: '1.2rem'
             }}>
-              Loading...
+              <div className="loading-spinner" style={{
+                width: '40px',
+                height: '40px',
+                border: '3px solid rgba(255, 255, 255, 0.3)',
+                borderTop: '3px solid var(--primary-color)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '1rem'
+              }}></div>
+              
+              <div className="loading-text">
+                {loadingStages.profile ? 'Loading profile...' :
+                 loadingStages.enemies ? 'Loading enemies...' :
+                 loadingStages.stats ? 'Calculating stats...' :
+                 'Loading...'}
+              </div>
+
+              {/* Progresso visual */}
+              <div className="loading-progress" style={{
+                width: '200px',
+                height: '4px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '2px',
+                marginTop: '1rem',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  height: '100%',
+                  backgroundColor: 'var(--primary-color)',
+                  borderRadius: '2px',
+                  transition: 'width 0.3s ease',
+                  width: `${(!loadingStages.profile ? 33 : 0) + 
+                           (!loadingStages.enemies ? 33 : 0) + 
+                           (!loadingStages.stats ? 34 : 0)}%`
+                }}></div>
+              </div>
             </div>
           </div>
         </div>
@@ -270,18 +337,33 @@ export default function PveBattle() {
     );
   }
 
+  // Erro ao carregar perfil
   if (!profile) {
     return (
       <Layout>
         <div className="pve-battle-container">
           <div className="pve-content">
-            <p>Erro ao carregar perfil. Tente novamente.</p>
+            <div className="pve-header">
+              <h1 className="pve-title">PvE Battle Arena</h1>
+              <p className="pve-subtitle">CHOOSE YOUR OPPONENT!</p>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '50vh',
+              color: 'var(--text-light)',
+              fontSize: '1.2rem'
+            }}>
+              <p>Error loading profile. Please try again.</p>
+            </div>
           </div>
         </div>
       </Layout>
     );
   }
 
+  // Renderização principal
   return (
     <Layout>
       <div className="pve-battle-container">
@@ -362,6 +444,20 @@ export default function PveBattle() {
               </div>
             ))}
           </div>
+
+          {/* Mensagem se não há inimigos */}
+          {processedEnemies.length === 0 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '30vh',
+              color: 'var(--text-light)',
+              fontSize: '1.2rem'
+            }}>
+              <p>No enemies available at the moment.</p>
+            </div>
+          )}
 
           {/* Modal de Batalha */}
           {isBattleModalOpen && selectedEnemyForBattle && (
