@@ -1,26 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../services/supabaseClientFront';
 import CharacterModal from '../components/CharacterModal';
 import Layout from '../components/Layout';
 import './Perfil.css';
 
+// Debounce utility function
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
 export default function Perfil() {
   const { user } = useAuth();
+  
+  // Estados consolidados
   const [profile, setProfile] = useState(null);
   const [characterType, setCharacterType] = useState(null);
-  const [characterData, setCharacterData] = useState(null);
-  const [characterStats, setCharacterStats] = useState(null);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
-  const [isChangingCharacter, setIsChangingCharacter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userPowers, setUserPowers] = useState({ slot_1: null, slot_2: null, slot_3: null });
   const [availablePowers, setAvailablePowers] = useState([]);
   const [showPowerSelector, setShowPowerSelector] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [powerActionLoading, setPowerActionLoading] = useState(false);
+  
+  // Cache para evitar recarregamentos desnecessários
+  const [dataCache, setDataCache] = useState({
+    characterTypes: new Map(),
+    powers: new Map(),
+    lastProfileUpdate: null,
+    lastPowersUpdate: null
+  });
 
-  const calculateStats = (characterData, level) => {
+  // Função para calcular stats (memoizada)
+  const calculateStats = useCallback((characterData, level) => {
     const growthRates = {
       1: { hp: 25, attack: 3 }, // Assassin
       2: { hp: 35, attack: 4 }, // Warrior  
@@ -35,102 +56,130 @@ export default function Perfil() {
       critical: characterData.base_critical,
       speed: characterData.base_speed
     };
-  };
+  }, []);
 
-  // Função para carregar poderes do usuário com nova estrutura
-  const loadUserPowers = async () => {
+  // Função para obter dados do character type do cache
+  const getCachedCharacterData = useCallback((characterTypeId) => {
+    const cached = dataCache.characterTypes.get(characterTypeId);
+    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) { // 5 minutos
+      return cached.data;
+    }
+    return null;
+  }, [dataCache.characterTypes]);
+
+  // Função principal para carregar todos os dados iniciais
+  const loadInitialData = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
-      const { data, error } = await supabase
-        .from('user_powers')
-        .select(`
+      setLoading(true);
+      
+      // Carregar dados em paralelo
+      const [profileResult, characterTypesResult, userPowersResult] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('character_types').select('*'),
+        supabase.from('user_powers').select(`
           equipped_power_1,
           equipped_power_2,
           equipped_power_3,
-          owned_powers
-        `)
-        .eq('user_id', user.id)
-        .single();
+          owned_powers,
+          power_1:equipped_power_1(id, name, icon, description, activation_chance),
+          power_2:equipped_power_2(id, name, icon, description, activation_chance),
+          power_3:equipped_power_3(id, name, icon, description, activation_chance)
+        `).eq('user_id', user.id).single()
+      ]);
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Erro ao carregar poderes:', error);
-        return;
+      // Processar perfil
+      if (profileResult.data) {
+        setProfile(profileResult.data);
+        setCharacterType(profileResult.data.character_type || 1);
       }
 
-      // Se não há registro, criar um vazio
-      if (!data) {
+      // Cache dos character types
+      if (characterTypesResult.data) {
+        const characterTypesMap = new Map();
+        characterTypesResult.data.forEach(ct => {
+          characterTypesMap.set(ct.id, {
+            data: ct,
+            timestamp: Date.now()
+          });
+        });
+        
+        setDataCache(prev => ({
+          ...prev,
+          characterTypes: characterTypesMap,
+          lastProfileUpdate: Date.now()
+        }));
+      }
+
+      // Processar poderes do usuário
+      if (userPowersResult.data) {
+        const powersData = userPowersResult.data;
+        
+        // Montar poderes equipados usando os dados do JOIN
+        const newUserPowers = { slot_1: null, slot_2: null, slot_3: null };
+        
+        for (let i = 1; i <= 3; i++) {
+          const powerData = powersData[`power_${i}`];
+          if (powerData) {
+            newUserPowers[`slot_${i}`] = powerData;
+          }
+        }
+
+        setUserPowers(newUserPowers);
+
+        // Carregar poderes disponíveis se existirem
+        if (powersData.owned_powers && powersData.owned_powers.length > 0) {
+          const { data: availablePowersData, error: availableError } = await supabase
+            .from('powers')
+            .select('id, name, icon, description, activation_chance')
+            .in('id', powersData.owned_powers);
+
+          if (!availableError && availablePowersData) {
+            setAvailablePowers(availablePowersData);
+          }
+        }
+
+        setDataCache(prev => ({
+          ...prev,
+          lastPowersUpdate: Date.now()
+        }));
+      } else {
+        // Se não há registro de poderes, criar um vazio
         const { error: insertError } = await supabase
           .from('user_powers')
           .insert([{ user_id: user.id, owned_powers: [] }]);
 
         if (insertError) {
           console.error('Erro ao criar registro de poderes:', insertError);
-          return;
         }
         
         setUserPowers({ slot_1: null, slot_2: null, slot_3: null });
         setAvailablePowers([]);
-        return;
-      }
-
-      // Carregar detalhes dos poderes equipados
-      const equippedPowerIds = [
-        data.equipped_power_1,
-        data.equipped_power_2,
-        data.equipped_power_3
-      ].filter(id => id !== null);
-
-      let equippedPowersData = [];
-      if (equippedPowerIds.length > 0) {
-        const { data: powersData, error: powersError } = await supabase
-          .from('powers')
-          .select('id, name, icon, description')
-          .in('id', equippedPowerIds);
-
-        if (powersError) {
-          console.error('Erro ao carregar detalhes dos poderes:', powersError);
-        } else {
-          equippedPowersData = powersData;
-        }
-      }
-
-      // Montar objeto de poderes equipados
-      const newUserPowers = { slot_1: null, slot_2: null, slot_3: null };
-      
-      for (let i = 1; i <= 3; i++) {
-        const powerId = data[`equipped_power_${i}`];
-        if (powerId) {
-          const powerData = equippedPowersData.find(p => p.id === powerId);
-          if (powerData) {
-            newUserPowers[`slot_${i}`] = powerData;
-          }
-        }
-      }
-
-      setUserPowers(newUserPowers);
-
-      // Carregar poderes disponíveis
-      if (data.owned_powers && data.owned_powers.length > 0) {
-        const { data: availablePowersData, error: availableError } = await supabase
-          .from('powers')
-          .select('id, name, icon, description, activation_chance')
-          .in('id', data.owned_powers);
-
-        if (availableError) {
-          console.error('Erro ao carregar poderes disponíveis:', availableError);
-        } else {
-          setAvailablePowers(availablePowersData || []);
-        }
-      } else {
-        setAvailablePowers([]);
       }
 
     } catch (error) {
-      console.error('Erro ao carregar poderes:', error);
+      console.error('Erro ao carregar dados iniciais:', error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [user?.id]);
 
+  // Função otimizada para equipar poder com update otimista
   const equipPower = async (powerId) => {
+    if (powerActionLoading) return;
+    
     setPowerActionLoading(true);
+    
+    // Update otimista - atualizar UI imediatamente
+    const powerData = availablePowers.find(p => p.id === powerId);
+    const previousPower = userPowers[`slot_${selectedSlot}`];
+    
+    setUserPowers(prev => ({
+      ...prev,
+      [`slot_${selectedSlot}`]: powerData
+    }));
+
     try {
       const { error } = await supabase.rpc('equip_power', {
         user_id_param: user.id,
@@ -139,12 +188,14 @@ export default function Perfil() {
       });
 
       if (error) {
-        console.error('Erro ao equipar poder:', error);
-        return;
+        // Reverter mudança otimista em caso de erro
+        setUserPowers(prev => ({
+          ...prev,
+          [`slot_${selectedSlot}`]: previousPower
+        }));
+        throw error;
       }
 
-      // Recarregar dados
-      await loadUserPowers();
       setShowPowerSelector(false);
     } catch (error) {
       console.error('Erro ao equipar poder:', error);
@@ -153,10 +204,19 @@ export default function Perfil() {
     }
   };
 
+  // Função otimizada para desequipar poder
   const unequipPower = async (slot) => {
-    if (!userPowers[`slot_${slot}`]) return;
+    if (!userPowers[`slot_${slot}`] || powerActionLoading) return;
 
     setPowerActionLoading(true);
+    
+    // Update otimista
+    const previousPower = userPowers[`slot_${slot}`];
+    setUserPowers(prev => ({
+      ...prev,
+      [`slot_${slot}`]: null
+    }));
+
     try {
       const { error } = await supabase.rpc('unequip_power', {
         user_id_param: user.id,
@@ -164,11 +224,15 @@ export default function Perfil() {
       });
 
       if (error) {
-        console.error('Erro ao desequipar poder:', error);
-        return;
+        // Reverter mudança otimista em caso de erro
+        setUserPowers(prev => ({
+          ...prev,
+          [`slot_${slot}`]: previousPower
+        }));
+        throw error;
       }
 
-      await loadUserPowers();
+      setShowPowerSelector(false);
     } catch (error) {
       console.error('Erro ao desequipar poder:', error);
     } finally {
@@ -176,71 +240,28 @@ export default function Perfil() {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      loadProfile();
-    }
-  }, [user]);
+  // Debounced function para mudanças de personagem
+  const debouncedCharacterUpdate = useCallback(
+    debounce(async (newCharacterType) => {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ character_type: newCharacterType })
+          .eq('id', user.id);
 
-  useEffect(() => {
-    if (user) {
-      loadUserPowers();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (characterType && profile) {
-      loadCharacterData();
-    }
-  }, [characterType, profile]);
-
-  const loadProfile = async () => {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (data) {
-        setProfile(data);
-        setCharacterType(data.character_type || 1);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao atualizar personagem:', error);
+        // Reverter mudança em caso de erro
+        setCharacterType(profile?.character_type || 1);
       }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 500),
+    [user?.id, profile?.character_type]
+  );
 
-  const loadCharacterData = async () => {
-    try {
-      const { data: characterTypeData, error: characterError } = await supabase
-        .from('character_types')
-        .select('*')
-        .eq('id', characterType)
-        .single();
-
-      if (characterError) throw characterError;
-
-      setCharacterData(characterTypeData);
-
-      const calculatedStats = calculateStats(characterTypeData, profile.level || 1);
-      setCharacterStats(calculatedStats);
-    } catch (error) {
-      console.error('Erro ao carregar dados do personagem:', error);
-    }
-  };
-
-  const handleCharacterChange = (newCharacterType) => {
-    setCharacterType(newCharacterType);
-    loadProfile();
-  };
-
+  // Função para mudar personagem com update otimista
   const changeCharacter = async (direction) => {
-    if (isChangingCharacter) return;
-
-    setIsChangingCharacter(true);
+    if (!user?.id) return;
 
     let newCharacterType;
     if (direction === 'next') {
@@ -249,50 +270,96 @@ export default function Perfil() {
       newCharacterType = characterType === 1 ? 3 : characterType - 1;
     }
 
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ character_type: newCharacterType })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setCharacterType(newCharacterType);
-      await loadCharacterData();
-    } catch (error) {
-      console.error('Erro ao mudar personagem:', error);
-    } finally {
-      setIsChangingCharacter(false);
-    }
+    // Update otimista
+    setCharacterType(newCharacterType);
+    
+    // Update no backend com debounce
+    debouncedCharacterUpdate(newCharacterType);
   };
+
+  // Função para abrir seletor de poderes
+  const openPowerSelector = (slot) => {
+    if (availablePowers.length === 0) return;
+    setSelectedSlot(slot);
+    setShowPowerSelector(true);
+  };
+
+  // Memoizar poderes disponíveis para seleção
+  const availablePowersForSelection = useMemo(() => {
+    const equippedPowerIds = Object.values(userPowers)
+      .filter(power => power !== null)
+      .map(power => power.id);
+    
+    return availablePowers.filter(power => !equippedPowerIds.includes(power.id));
+  }, [userPowers, availablePowers]);
+
+  // Memoizar dados do personagem atual
+  const currentCharacterData = useMemo(() => {
+    if (!characterType) return null;
+    return getCachedCharacterData(characterType);
+  }, [characterType, getCachedCharacterData]);
+
+  // Memoizar stats calculadas
+  const characterStats = useMemo(() => {
+    if (!currentCharacterData || !profile) return null;
+    return calculateStats(currentCharacterData, profile.level || 1);
+  }, [currentCharacterData, profile, calculateStats]);
 
   // Função para verificar se um poder está equipado
-  const isPowerEquipped = (powerId) => {
+  const isPowerEquipped = useCallback((powerId) => {
     return Object.values(userPowers).some(power => power && power.id === powerId);
-  };
+  }, [userPowers]);
 
   // Função para obter o slot onde o poder está equipado
-  const getPowerSlot = (powerId) => {
+  const getPowerSlot = useCallback((powerId) => {
     for (let i = 1; i <= 3; i++) {
       if (userPowers[`slot_${i}`] && userPowers[`slot_${i}`].id === powerId) {
         return i;
       }
     }
     return null;
-  };
+  }, [userPowers]);
 
-  if (loading || !characterData || !characterStats) {
+  // Effect principal para carregar dados iniciais
+  useEffect(() => {
+    if (user?.id) {
+      loadInitialData();
+    }
+  }, [user?.id, loadInitialData]);
+
+  // Setup de real-time subscriptions
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const subscription = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        }, 
+        (payload) => {
+          setProfile(payload.new);
+          if (payload.new.character_type !== characterType) {
+            setCharacterType(payload.new.character_type);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user?.id, characterType]);
+
+  // Loading state
+  if (loading || !currentCharacterData || !characterStats) {
     return (
       <Layout>
         <div className="perfil-container">
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            color: 'var(--text-light)',
-            fontSize: '1.5rem'
-          }}>
+          <div className="loading-container">
             Loading...
           </div>
         </div>
@@ -307,7 +374,6 @@ export default function Perfil() {
         <button
           className="character-nav-arrow left"
           onClick={() => changeCharacter('prev')}
-          disabled={isChangingCharacter}
         >
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
             <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -335,19 +401,16 @@ export default function Perfil() {
             return (
               <div key={slot} className="power-slot">
                 {power ? (
-                  <div className="power-item" onClick={() => unequipPower(slot)}>
+                  <div 
+                    className="power-item" 
+                    onClick={() => openPowerSelector(slot)}
+                  >
                     <span className="power-icon">{power.icon}</span>
                   </div>
                 ) : isUnlocked ? (
                   <div
                     className="power-empty"
-                    onClick={() => {
-                      if (availablePowers.length === 0) {
-                        return;
-                      }
-                      setSelectedSlot(slot);
-                      setShowPowerSelector(true);
-                    }}
+                    onClick={() => openPowerSelector(slot)}
                   >
                     <span className="empty-icon">+</span>
                     <span className="empty-text">Empty</span>
@@ -369,51 +432,54 @@ export default function Perfil() {
             <div className="power-selector-content">
               <h3>Selecione um poder para o Slot {selectedSlot}</h3>
               <div className="available-powers">
-                {availablePowers.length > 0 ? (
-                  availablePowers.map(power => {
-                    const isEquipped = isPowerEquipped(power.id);
-                    const equippedSlot = getPowerSlot(power.id);
-                    
-                    return (
-                      <div
-                        key={power.id}
-                        className={`selectable-power ${isEquipped ? 'equipped' : ''}`}
-                        onClick={() => {
-                          if (powerActionLoading) return;
-                          equipPower(power.id);
-                        }}
-                        style={{ 
-                          opacity: powerActionLoading ? 0.6 : 1,
-                          cursor: powerActionLoading ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        <span className="power-icon">{power.icon}</span>
-                        <div className="power-details">
-                          <span className="power-name">{power.name}</span>
-                          <p className="power-description">{power.description}</p>
-                          <small style={{ color: 'var(--text-secondary)' }}>
-                            Chance de ativação: {power.activation_chance}%
-                          </small>
-                          {isEquipped && (
-                            <small className="equipped-indicator">
-                              Equipado no Slot {equippedSlot}
-                            </small>
-                          )}
-                        </div>
+                {availablePowersForSelection.length > 0 ? (
+                  availablePowersForSelection.map(power => (
+                    <div
+                      key={power.id}
+                      className={`selectable-power ${powerActionLoading ? 'loading' : ''}`}
+                      onClick={() => {
+                        if (powerActionLoading) return;
+                        equipPower(power.id);
+                      }}
+                    >
+                      <span className="power-icon">{power.icon}</span>
+                      <div className="power-details">
+                        <span className="power-name">{power.name}</span>
+                        <p className="power-description">{power.description}</p>
+                        <small className="power-chance">
+                          Chance de ativação: {power.activation_chance}%
+                        </small>
                       </div>
-                    );
-                  })
+                    </div>
+                  ))
                 ) : (
-                  <p>Nenhum poder disponível. Compre poderes na loja!</p>
+                  <p>
+                    {availablePowers.length === 0 
+                      ? "Nenhum poder disponível. Compre poderes na loja!" 
+                      : "Todos os poderes disponíveis já estão equipados!"
+                    }
+                  </p>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <div className='select-power-modal'>
+                {userPowers[`slot_${selectedSlot}`] && (
+                  <button
+                    className={`remove-power-btn ${powerActionLoading ? 'loading' : ''}`}
+                    onClick={() => {
+                      if (powerActionLoading) return;
+                      unequipPower(selectedSlot);
+                    }}
+                    disabled={powerActionLoading}
+                  >
+                    Remove Power
+                  </button>
+                )}
                 <button
                   className="close-selector"
                   onClick={() => setShowPowerSelector(false)}
                   disabled={powerActionLoading}
                 >
-                  Cancelar
+                  Close
                 </button>
               </div>
             </div>
@@ -424,7 +490,6 @@ export default function Perfil() {
         <button
           className="character-nav-arrow right"
           onClick={() => changeCharacter('next')}
-          disabled={isChangingCharacter}
         >
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
             <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -479,11 +544,14 @@ export default function Perfil() {
         <CharacterModal
           user={user}
           profile={profile}
-          characterData={characterData}
+          characterData={currentCharacterData}
           characterStats={characterStats}
           isOpen={isCharacterModalOpen}
           onClose={() => setIsCharacterModalOpen(false)}
-          onCharacterChange={handleCharacterChange}
+          onCharacterChange={(newCharacterType) => {
+            setCharacterType(newCharacterType);
+            debouncedCharacterUpdate(newCharacterType);
+          }}
         />
       </div>
     </Layout>

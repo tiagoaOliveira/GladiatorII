@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../services/supabaseClientFront';
 import Layout from '../components/Layout';
@@ -14,6 +14,8 @@ const ENEMY_ICONS = {
 
 export default function PveBattle() {
   const { user } = useAuth();
+  
+  // Estados consolidados
   const [profile, setProfile] = useState(null);
   const [enemies, setEnemies] = useState([]);
   const [enemyStats, setEnemyStats] = useState({});
@@ -24,84 +26,228 @@ export default function PveBattle() {
   const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
   const [selectedEnemyForBattle, setSelectedEnemyForBattle] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      loadProfile();
-      loadEnemies();
+  // Cache para evitar recarregamentos desnecessários
+  const [dataCache, setDataCache] = useState({
+    enemies: new Map(),
+    enemyStats: new Map(),
+    lastEnemiesUpdate: null,
+    lastProfileUpdate: null
+  });
+
+  // Função para obter inimigos do cache
+  const getCachedEnemies = useCallback(() => {
+    const cached = dataCache.enemies.get('all_enemies');
+    if (cached && Date.now() - cached.timestamp < 15 * 60 * 1000) { // 15 minutos
+      return cached.data;
     }
-  }, [user]);
+    return null;
+  }, [dataCache.enemies]);
 
-  const loadProfile = async () => {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (data) {
-        setProfile(data);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
+  // Função para obter stats do inimigo do cache
+  const getCachedEnemyStats = useCallback((enemyId) => {
+    const cached = dataCache.enemyStats.get(enemyId);
+    if (cached && Date.now() - cached.timestamp < 15 * 60 * 1000) { // 15 minutos
+      return cached.data;
     }
-  };
+    return null;
+  }, [dataCache.enemyStats]);
 
-  const loadEnemies = async () => {
+  // Função otimizada para calcular stats de múltiplos inimigos
+  const calculateMultipleEnemyStats = useCallback(async (enemyIds) => {
+    const missingStats = enemyIds.filter(id => !getCachedEnemyStats(id));
+    
+    if (missingStats.length === 0) {
+      // Todos os stats estão no cache
+      const statsMap = {};
+      enemyIds.forEach(id => {
+        statsMap[id] = getCachedEnemyStats(id);
+      });
+      return statsMap;
+    }
+
     try {
-      // Carregar todos os inimigos
-      const { data: enemiesData, error: enemiesError } = await supabase
-        .from('enemies')
-        .select('*')
-        .order('level', { ascending: true });
-
-      if (enemiesError) throw enemiesError;
-
-      setEnemies(enemiesData);
-
-      // Calcular stats para cada inimigo
-      const statsPromises = enemiesData.map(async (enemy) => {
+      // Calcular stats apenas para os inimigos que não estão no cache
+      const statsPromises = missingStats.map(async (enemyId) => {
         const { data: statsData, error: statsError } = await supabase
           .rpc('calculate_enemy_stats', {
-            enemy_id: enemy.id
+            enemy_id: enemyId
           });
 
         if (statsError) {
-          console.error(`Erro ao calcular stats do inimigo ${enemy.id}:`, statsError);
+          console.error(`Erro ao calcular stats do inimigo ${enemyId}:`, statsError);
           return null;
         }
 
         return {
-          enemyId: enemy.id,
+          enemyId,
           stats: statsData[0]
         };
       });
 
       const resolvedStats = await Promise.all(statsPromises);
-      const statsMap = {};
+      const newStatsMap = {};
+      const newCacheEntries = new Map();
 
+      // Processar novos stats
       resolvedStats.forEach(item => {
         if (item) {
-          statsMap[item.enemyId] = item.stats;
+          newStatsMap[item.enemyId] = item.stats;
+          newCacheEntries.set(item.enemyId, {
+            data: item.stats,
+            timestamp: Date.now()
+          });
         }
       });
 
-      setEnemyStats(statsMap);
+      // Combinar com stats do cache
+      const allStatsMap = { ...newStatsMap };
+      enemyIds.forEach(id => {
+        if (!allStatsMap[id]) {
+          allStatsMap[id] = getCachedEnemyStats(id);
+        }
+      });
+
+      // Atualizar cache
+      setDataCache(prev => ({
+        ...prev,
+        enemyStats: new Map([...prev.enemyStats, ...newCacheEntries])
+      }));
+
+      return allStatsMap;
     } catch (error) {
-      console.error('Erro ao carregar inimigos:', error);
+      console.error('Erro ao calcular stats dos inimigos:', error);
+      return {};
+    }
+  }, [getCachedEnemyStats]);
+
+  // Função principal para carregar todos os dados iniciais
+  const loadInitialData = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+      
+      // Verificar cache de inimigos primeiro
+      const cachedEnemies = getCachedEnemies();
+      
+      // Carregar dados em paralelo
+      const promises = [
+        supabase.from('profiles').select('*').eq('id', user.id).single()
+      ];
+
+      // Só carregar inimigos se não estiverem no cache
+      if (!cachedEnemies) {
+        promises.push(
+          supabase.from('enemies').select('*').order('level', { ascending: true })
+        );
+      }
+
+      const results = await Promise.all(promises);
+      const [profileResult, enemiesResult] = results;
+
+      // Processar perfil
+      if (profileResult.data) {
+        setProfile(profileResult.data);
+      }
+
+      // Processar inimigos (do cache ou da consulta)
+      let enemiesData;
+      if (cachedEnemies) {
+        enemiesData = cachedEnemies;
+        setEnemies(cachedEnemies);
+      } else if (enemiesResult?.data) {
+        enemiesData = enemiesResult.data;
+        setEnemies(enemiesData);
+        
+        // Atualizar cache
+        setDataCache(prev => ({
+          ...prev,
+          enemies: new Map([
+            ...prev.enemies,
+            ['all_enemies', { data: enemiesData, timestamp: Date.now() }]
+          ]),
+          lastEnemiesUpdate: Date.now()
+        }));
+      }
+
+      // Calcular stats para todos os inimigos
+      if (enemiesData && enemiesData.length > 0) {
+        const enemyIds = enemiesData.map(enemy => enemy.id);
+        const statsMap = await calculateMultipleEnemyStats(enemyIds);
+        setEnemyStats(statsMap);
+      }
+
+      setDataCache(prev => ({
+        ...prev,
+        lastProfileUpdate: Date.now()
+      }));
+
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, getCachedEnemies, calculateMultipleEnemyStats]);
 
-  const handleEnemySelect = (enemy) => {
+  // Função otimizada para selecionar inimigo
+  const handleEnemySelect = useCallback((enemy) => {
     setSelectedEnemy(enemy);
-  };
+  }, []);
 
-  const openBattleModal = (enemy) => {
+  // Função otimizada para abrir modal de batalha
+  const openBattleModal = useCallback((enemy) => {
     setSelectedEnemyForBattle(enemy);
     setIsBattleModalOpen(true);
-  };
+  }, []);
+
+  // Função otimizada para fechar modal de batalha
+  const closeBattleModal = useCallback(() => {
+    setIsBattleModalOpen(false);
+    setSelectedEnemyForBattle(null);
+  }, []);
+
+  // Memoizar inimigos processados com seus stats
+  const processedEnemies = useMemo(() => {
+    return enemies.map(enemy => {
+      const stats = enemyStats[enemy.id];
+      return {
+        ...enemy,
+        stats,
+        icon: ENEMY_ICONS[enemy.type] || '🗡️'
+      };
+    }).filter(enemy => enemy.stats); // Só mostrar inimigos com stats calculados
+  }, [enemies, enemyStats]);
+
+  // Effect principal para carregar dados iniciais
+  useEffect(() => {
+    if (user?.id) {
+      loadInitialData();
+    }
+  }, [user?.id, loadInitialData]);
+
+  // Setup de real-time subscriptions para profile
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const subscription = supabase
+      .channel('pve-profile-changes')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        }, 
+        (payload) => {
+          setProfile(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -148,87 +294,82 @@ export default function PveBattle() {
 
           {/* Grid de Inimigos */}
           <div className="enemies-grid">
-            {enemies.map((enemy) => {
-              const stats = enemyStats[enemy.id];
-              if (!stats) return null;
-
-              return (
-                <div
-                  key={enemy.id}
-                  className={`enemy-card ${enemy.type}`}
-                  onClick={() => handleEnemySelect(enemy)}
-                >
-                  {/* Imagem do Inimigo */}
-                  <div className={`enemy-image ${enemy.type}`}>
-                    {ENEMY_ICONS[enemy.type]}
-                  </div>
-
-                  {/* Informações do Inimigo */}
-                  <div className="enemy-info">
-                    <h3 className="enemy-name">{enemy.name}</h3>
-                    <p className="enemy-level">Level {enemy.level}</p>
-                    <p className="enemy-description">{enemy.description}</p>
-
-                    {/* Stats do Inimigo */}
-                    <div className="enemy-stats">
-                      <div className="enemy-stat">
-                        <span className="stat-icon">❤️</span>
-                        <span className="stat-name">HP</span>
-                        <span className="stat-value">{stats.hp}</span>
-                      </div>
-                      <div className="enemy-stat">
-                        <span className="stat-icon">⚔️</span>
-                        <span className="stat-name">ATK</span>
-                        <span className="stat-value">{stats.attack}</span>
-                      </div>
-                      <div className="enemy-stat">
-                        <span className="stat-icon">🛡️</span>
-                        <span className="stat-name">DEF</span>
-                        <span className="stat-value">{stats.defense}</span>
-                      </div>
-                      <div className="enemy-stat">
-                        <span className="stat-icon">💨</span>
-                        <span className="stat-name">SPD</span>
-                        <span className="stat-value">{stats.speed}</span>
-                      </div>
-                    </div>
-
-                    {/* Recompensas */}
-                    <div className="enemy-rewards">
-                      <div className="reward-item">
-                        <span className="reward-icon">🏆</span>
-                        <span>{enemy.xp_reward} XP</span>
-                      </div>
-                      <div className="reward-item">
-                        <span className="reward-icon">💰</span>
-                        <span>{enemy.gold_reward} Gold</span>
-                      </div>
-                    </div>
-
-                    {/* Botão de Batalha */}
-                    <button
-                      className="battle-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openBattleModal(enemy);
-                      }}
-                      disabled={isBattling}
-                    >
-                      Battle!
-                    </button>
-                  </div>
+            {processedEnemies.map((enemy) => (
+              <div
+                key={enemy.id}
+                className={`enemy-card ${enemy.type}`}
+                onClick={() => handleEnemySelect(enemy)}
+              >
+                {/* Imagem do Inimigo */}
+                <div className={`enemy-image ${enemy.type}`}>
+                  {enemy.icon}
                 </div>
-              );
-            })}
+
+                {/* Informações do Inimigo */}
+                <div className="enemy-info">
+                  <h3 className="enemy-name">{enemy.name}</h3>
+                  <p className="enemy-level">Level {enemy.level}</p>
+                  <p className="enemy-description">{enemy.description}</p>
+
+                  {/* Stats do Inimigo */}
+                  <div className="enemy-stats">
+                    <div className="enemy-stat">
+                      <span className="stat-icon">❤️</span>
+                      <span className="stat-name">HP</span>
+                      <span className="stat-value">{enemy.stats.hp}</span>
+                    </div>
+                    <div className="enemy-stat">
+                      <span className="stat-icon">⚔️</span>
+                      <span className="stat-name">ATK</span>
+                      <span className="stat-value">{enemy.stats.attack}</span>
+                    </div>
+                    <div className="enemy-stat">
+                      <span className="stat-icon">🛡️</span>
+                      <span className="stat-name">DEF</span>
+                      <span className="stat-value">{enemy.stats.defense}</span>
+                    </div>
+                    <div className="enemy-stat">
+                      <span className="stat-icon">💨</span>
+                      <span className="stat-name">SPD</span>
+                      <span className="stat-value">{enemy.stats.speed}</span>
+                    </div>
+                  </div>
+
+                  {/* Recompensas */}
+                  <div className="enemy-rewards">
+                    <div className="reward-item">
+                      <span className="reward-icon">🏆</span>
+                      <span>{enemy.xp_reward} XP</span>
+                    </div>
+                    <div className="reward-item">
+                      <span className="reward-icon">💰</span>
+                      <span>{enemy.gold_reward} Gold</span>
+                    </div>
+                  </div>
+
+                  {/* Botão de Batalha */}
+                  <button
+                    className="battle-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openBattleModal(enemy);
+                    }}
+                    disabled={isBattling}
+                  >
+                    Battle!
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Modal de Batalha */}
-          {isBattleModalOpen && (
+          {isBattleModalOpen && selectedEnemyForBattle && (
             <ModalBattle
               isOpen={isBattleModalOpen}
-              onClose={() => setIsBattleModalOpen(false)}
+              onClose={closeBattleModal}
               enemy={selectedEnemyForBattle}
-              enemyStats={enemyStats[selectedEnemyForBattle?.id]}
+              enemyStats={enemyStats[selectedEnemyForBattle.id]}
             />
           )}
         </div>
