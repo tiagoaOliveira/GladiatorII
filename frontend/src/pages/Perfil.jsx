@@ -20,7 +20,7 @@ const debounce = (func, wait) => {
 
 export default function Perfil() {
   const { user } = useAuth();
-  
+
   // Estados consolidados
   const [profile, setProfile] = useState(null);
   const [characterType, setCharacterType] = useState(null);
@@ -31,7 +31,7 @@ export default function Perfil() {
   const [showPowerSelector, setShowPowerSelector] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [powerActionLoading, setPowerActionLoading] = useState(false);
-  
+
   // Cache para evitar recarregamentos desnecessários
   const [dataCache, setDataCache] = useState({
     characterTypes: new Map(),
@@ -73,7 +73,7 @@ export default function Perfil() {
 
     try {
       setLoading(true);
-      
+
       // Carregar dados em paralelo
       const [profileResult, characterTypesResult, userPowersResult] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -104,7 +104,7 @@ export default function Perfil() {
             timestamp: Date.now()
           });
         });
-        
+
         setDataCache(prev => ({
           ...prev,
           characterTypes: characterTypesMap,
@@ -115,10 +115,10 @@ export default function Perfil() {
       // Processar poderes do usuário
       if (userPowersResult.data) {
         const powersData = userPowersResult.data;
-        
+
         // Montar poderes equipados usando os dados do JOIN
         const newUserPowers = { slot_1: null, slot_2: null, slot_3: null };
-        
+
         for (let i = 1; i <= 3; i++) {
           const powerData = powersData[`power_${i}`];
           if (powerData) {
@@ -153,7 +153,7 @@ export default function Perfil() {
         if (insertError) {
           console.error('Erro ao criar registro de poderes:', insertError);
         }
-        
+
         setUserPowers({ slot_1: null, slot_2: null, slot_3: null });
         setAvailablePowers([]);
       }
@@ -168,13 +168,13 @@ export default function Perfil() {
   // Função otimizada para equipar poder com update otimista
   const equipPower = async (powerId) => {
     if (powerActionLoading) return;
-    
+
     setPowerActionLoading(true);
-    
+
     // Update otimista - atualizar UI imediatamente
     const powerData = availablePowers.find(p => p.id === powerId);
     const previousPower = userPowers[`slot_${selectedSlot}`];
-    
+
     setUserPowers(prev => ({
       ...prev,
       [`slot_${selectedSlot}`]: powerData
@@ -209,7 +209,7 @@ export default function Perfil() {
     if (!userPowers[`slot_${slot}`] || powerActionLoading) return;
 
     setPowerActionLoading(true);
-    
+
     // Update otimista
     const previousPower = userPowers[`slot_${slot}`];
     setUserPowers(prev => ({
@@ -272,7 +272,7 @@ export default function Perfil() {
 
     // Update otimista
     setCharacterType(newCharacterType);
-    
+
     // Update no backend com debounce
     debouncedCharacterUpdate(newCharacterType);
   };
@@ -289,7 +289,7 @@ export default function Perfil() {
     const equippedPowerIds = Object.values(userPowers)
       .filter(power => power !== null)
       .map(power => power.id);
-    
+
     return availablePowers.filter(power => !equippedPowerIds.includes(power.id));
   }, [userPowers, availablePowers]);
 
@@ -333,13 +333,13 @@ export default function Perfil() {
 
     const subscription = supabase
       .channel('profile-changes')
-      .on('postgres_changes', 
-        { 
-          event: 'UPDATE', 
-          schema: 'public', 
+      .on('postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
           table: 'profiles',
           filter: `id=eq.${user.id}`
-        }, 
+        },
         (payload) => {
           setProfile(payload.new);
           if (payload.new.character_type !== characterType) {
@@ -396,29 +396,23 @@ export default function Perfil() {
         <div className="power-slots">
           {[1, 2, 3].map(slot => {
             const power = userPowers[`slot_${slot}`];
-            const isUnlocked = profile?.level >= (slot * 2 - 1);
 
             return (
               <div key={slot} className="power-slot">
                 {power ? (
-                  <div 
-                    className="power-item" 
+                  <div
+                    className="power-item"
                     onClick={() => openPowerSelector(slot)}
                   >
                     <span className="power-icon">{power.icon}</span>
                   </div>
-                ) : isUnlocked ? (
+                ) : (
                   <div
                     className="power-empty"
                     onClick={() => openPowerSelector(slot)}
                   >
                     <span className="empty-icon">+</span>
                     <span className="empty-text">Empty</span>
-                  </div>
-                ) : (
-                  <div className="power-locked">
-                    <span className="locked-icon">🔒</span>
-                    <span className="locked-text">Lv.{slot * 2 - 1}</span>
                   </div>
                 )}
               </div>
@@ -454,8 +448,8 @@ export default function Perfil() {
                   ))
                 ) : (
                   <p>
-                    {availablePowers.length === 0 
-                      ? "Nenhum poder disponível. Compre poderes na loja!" 
+                    {availablePowers.length === 0
+                      ? "Nenhum poder disponível. Compre poderes na loja!"
                       : "Todos os poderes disponíveis já estão equipados!"
                     }
                   </p>

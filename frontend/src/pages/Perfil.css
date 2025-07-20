@@ -288,22 +288,6 @@
   color: var(--text-secondary);
 }
 
-.power-locked {
-  text-align: center;
-  opacity: 0.5;
-}
-
-.locked-icon {
-  font-size: 1.5rem;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.locked-text {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
 .selectable-power.equipped {
   background: var(--primary-gold);
   color: var(--text-light);

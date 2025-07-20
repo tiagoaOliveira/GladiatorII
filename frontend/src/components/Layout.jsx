@@ -56,13 +56,6 @@ export default function Layout({ children }) {
           <nav className="desktop-nav">
             <button 
               className="nav-button" 
-              onClick={() => handleNavigation('/PveBattle')}
-              title="PvE Battle"
-            >
-              ⚔️
-            </button>
-            <button 
-              className="nav-button" 
               onClick={() => handleNavigation('/Tournament')}
               title="Tournament"
             >
@@ -88,13 +81,6 @@ export default function Layout({ children }) {
         {/* Menu mobile */}
         <nav className={`mobile-nav ${isMenuOpen ? 'open' : ''}`}>
           <div className="mobile-nav-content">
-            <button 
-              className="nav-button mobile" 
-              onClick={() => handleNavigation('/PveBattle')}
-              title="PvE Battle"
-            >
-              ⚔️
-            </button>
             <button 
               className="nav-button mobile" 
               onClick={() => handleNavigation('/Tournament')}

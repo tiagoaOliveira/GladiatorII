@@ -7,21 +7,20 @@ import './ModalBattle.css';
 export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [characterData, setCharacterData] = useState(null);
   const [playerStats, setPlayerStats] = useState(null);
   const [userPowers, setUserPowers] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Estados da batalha
-  const [battleState, setBattleState] = useState('preparation'); // preparation, fighting, ended
+  const [battleState, setBattleState] = useState('preparation');
   const [battleSystem, setBattleSystem] = useState(null);
   const [battleData, setBattleData] = useState(null);
   const [battleResult, setBattleResult] = useState(null);
   const [battleLog, setBattleLog] = useState([]);
   const [rewardsProcessed, setRewardsProcessed] = useState(false);
 
-  // Carregar dados do jogador uma única vez
+  // Carregar dados do jogador
   const loadPlayerData = useCallback(async () => {
     if (!user?.id) return;
 
@@ -46,36 +45,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
 
       setProfile(profileData);
 
-      // 2. Buscar dados do tipo de personagem
-      const { data: characterTypeData, error: characterTypeError } = await supabase
-        .from('character_types')
-        .select('*')
-        .eq('id', profileData.character_type || 1)
-        .single();
-
-      if (characterTypeError) {
-        console.warn('Erro ao carregar tipo de personagem:', characterTypeError);
-        // Usar dados padrão se não encontrar
-        setCharacterData({
-          id: 1,
-          name: 'Warrior',
-          bg_image: null,
-          base_hp: 100,
-          base_attack: 20,
-          base_defense: 15,
-          base_critical: 5,
-          base_speed: 10,
-          hp_per_level: 10,
-          attack_per_level: 2,
-          defense_per_level: 1,
-          critical_per_level: 0.5,
-          speed_per_level: 1
-        });
-      } else {
-        setCharacterData(characterTypeData);
-      }
-
-      // 3. Calcular stats do jogador
+      // 2. Calcular stats do jogador
       const { data: statsData, error: statsError } = await supabase
         .rpc('calculate_character_stats', {
           character_type_id: profileData.character_type || 1,
@@ -86,34 +56,13 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
         throw new Error(`Erro ao calcular stats: ${statsError.message}`);
       }
 
-      if (statsData && statsData.length > 0) {
-        setPlayerStats(statsData[0]);
-      } else {
-        // Calcular stats manualmente se a função RPC falhar
-        const level = profileData.level || 1;
-        const charType = characterTypeData || {
-          base_hp: 100,
-          base_attack: 20,
-          base_defense: 15,
-          base_critical: 5,
-          base_speed: 10,
-          hp_per_level: 10,
-          attack_per_level: 2,
-          defense_per_level: 1,
-          critical_per_level: 0.5,
-          speed_per_level: 1
-        };
-
-        setPlayerStats({
-          hp: Math.floor(charType.base_hp + (charType.hp_per_level * (level - 1))),
-          attack: Math.floor(charType.base_attack + (charType.attack_per_level * (level - 1))),
-          defense: Math.floor(charType.base_defense + (charType.defense_per_level * (level - 1))),
-          critical: Math.floor(charType.base_critical + (charType.critical_per_level * (level - 1))),
-          speed: Math.floor(charType.base_speed + (charType.speed_per_level * (level - 1)))
-        });
+      if (!statsData || statsData.length === 0) {
+        throw new Error('Não foi possível calcular os stats do personagem');
       }
 
-      // 4. Carregar poderes do usuário
+      setPlayerStats(statsData[0]);
+
+      // 3. Carregar poderes do usuário
       const { data: userPowersData, error: userPowersError } = await supabase
         .from('user_powers')
         .select('*')
@@ -122,43 +71,30 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
 
       if (userPowersError && userPowersError.code !== 'PGRST116') {
         console.warn('Erro ao carregar poderes do usuário:', userPowersError);
+        setUserPowers(null);
       } else if (userPowersData) {
         // Buscar detalhes dos poderes equipados
         const powerPromises = [];
         const powersData = { ...userPowersData };
 
-        if (userPowersData.equipped_power_1) {
-          powerPromises.push(
-            supabase
-              .from('powers')
-              .select('*')
-              .eq('id', userPowersData.equipped_power_1)
-              .single()
-              .then(result => ({ slot: 'power_1', data: result.data, error: result.error }))
-          );
-        }
+        const powerSlots = [
+          { field: 'equipped_power_1', slot: 'power_1' },
+          { field: 'equipped_power_2', slot: 'power_2' },
+          { field: 'equipped_power_3', slot: 'power_3' }
+        ];
 
-        if (userPowersData.equipped_power_2) {
-          powerPromises.push(
-            supabase
-              .from('powers')
-              .select('*')
-              .eq('id', userPowersData.equipped_power_2)
-              .single()
-              .then(result => ({ slot: 'power_2', data: result.data, error: result.error }))
-          );
-        }
-
-        if (userPowersData.equipped_power_3) {
-          powerPromises.push(
-            supabase
-              .from('powers')
-              .select('*')
-              .eq('id', userPowersData.equipped_power_3)
-              .single()
-              .then(result => ({ slot: 'power_3', data: result.data, error: result.error }))
-          );
-        }
+        powerSlots.forEach(({ field, slot }) => {
+          if (userPowersData[field]) {
+            powerPromises.push(
+              supabase
+                .from('powers')
+                .select('*')
+                .eq('id', userPowersData[field])
+                .single()
+                .then(result => ({ slot, data: result.data, error: result.error }))
+            );
+          }
+        });
 
         if (powerPromises.length > 0) {
           const powerResults = await Promise.all(powerPromises);
@@ -210,7 +146,6 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
     if (result.result === 'victory' && !rewardsProcessed) {
       setRewardsProcessed(true);
       
-      // Implementar sistema de recompensas
       try {
         const newXp = (profile.xp || 0) + (enemy.xp_reward || 100);
         const newGold = (profile.gold || 0) + (enemy.gold_reward || 50);
@@ -348,9 +283,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
       <div className="modal-battle" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">Battle Arena</h2>
-          <button className="close-button" onClick={onClose}>
-            ✕
-          </button>
+          <button className="close-button" onClick={onClose}>✕</button>
         </div>
 
         <div className="battle-content">
@@ -391,9 +324,8 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     )}
                   </div>
                   <div className="fighter-info">
-                    <h3 className="fighter-name">{profile?.character_name || 'Player'}</h3>
-                    <p className="fighter-level">Level {profile?.level || 1}</p>
-                    <p className="fighter-type">{characterData?.name || 'Warrior'}</p>
+                    <h3 className="fighter-name">{profile?.character_name}</h3>
+                    <p className="fighter-level">Level {profile?.level}</p>
                   </div>
                 </div>
 
@@ -405,7 +337,7 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                 {/* Inimigo */}
                 <div className="fighter enemy">
                   <div className="fighter-image">
-                    <div className={`enemy-orb ${enemy?.type || 'warrior'}`}>
+                    <div className={`enemy-orb ${enemy?.type}`}>
                       {getEnemyIcon(enemy?.type)}
                     </div>
                     {battleData && (
@@ -423,9 +355,9 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                     )}
                   </div>
                   <div className="fighter-info">
-                    <h3 className="fighter-name">{enemy?.name || 'Enemy'}</h3>
-                    <p className="fighter-level">Level {enemy?.level || 1}</p>
-                    <p className="fighter-type">{enemy?.type || 'warrior'}</p>
+                    <h3 className="fighter-name">{enemy?.name}</h3>
+                    <p className="fighter-level">Level {enemy?.level}</p>
+                    <p className="fighter-type">{enemy?.type}</p>
                   </div>
                 </div>
               </div>
@@ -441,27 +373,27 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                         <div className="stat-item">
                           <span className="stat-icon-modal">❤️</span>
                           <span className="stat-name-modal">HP</span>
-                          <span className="stat-value-modal">{playerStats?.hp || 0}</span>
+                          <span className="stat-value-modal">{playerStats?.hp}</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">⚔️</span>
                           <span className="stat-name-modal">Attack</span>
-                          <span className="stat-value-modal">{playerStats?.attack || 0}</span>
+                          <span className="stat-value-modal">{playerStats?.attack}</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">🛡️</span>
                           <span className="stat-name-modal">Defense</span>
-                          <span className="stat-value-modal">{playerStats?.defense || 0}</span>
+                          <span className="stat-value-modal">{playerStats?.defense}</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">💥</span>
                           <span className="stat-name-modal">Critical</span>
-                          <span className="stat-value-modal">{playerStats?.critical || 0}%</span>
+                          <span className="stat-value-modal">{playerStats?.critical}%</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">💨</span>
                           <span className="stat-name-modal">Speed</span>
-                          <span className="stat-value-modal">{playerStats?.speed || 0}</span>
+                          <span className="stat-value-modal">{playerStats?.speed}</span>
                         </div>
                       </div>
                     </div>
@@ -472,27 +404,27 @@ export default function ModalBattle({ isOpen, onClose, enemy, enemyStats }) {
                         <div className="stat-item">
                           <span className="stat-icon-modal">❤️</span>
                           <span className="stat-name-modal">HP</span>
-                          <span className="stat-value-modal">{enemyStats?.hp || 0}</span>
+                          <span className="stat-value-modal">{enemyStats?.hp}</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">⚔️</span>
                           <span className="stat-name-modal">Attack</span>
-                          <span className="stat-value-modal">{enemyStats?.attack || 0}</span>
+                          <span className="stat-value-modal">{enemyStats?.attack}</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">🛡️</span>
                           <span className="stat-name-modal">Defense</span>
-                          <span className="stat-value-modal">{enemyStats?.defense || 0}</span>
+                          <span className="stat-value-modal">{enemyStats?.defense}</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">💥</span>
                           <span className="stat-name-modal">Critical</span>
-                          <span className="stat-value-modal">{enemyStats?.critical || 0}%</span>
+                          <span className="stat-value-modal">{enemyStats?.critical}%</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-icon-modal">💨</span>
                           <span className="stat-name-modal">Speed</span>
-                          <span className="stat-value-modal">{enemyStats?.speed || 0}</span>
+                          <span className="stat-value-modal">{enemyStats?.speed}</span>
                         </div>
                       </div>
                     </div>

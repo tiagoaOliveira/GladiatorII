@@ -16,94 +16,10 @@ CREATE TABLE character_types (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Tabela de inimigos
-CREATE TABLE enemies (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  level INTEGER NOT NULL DEFAULT 1,
-  base_hp INTEGER NOT NULL DEFAULT 0,
-  base_attack INTEGER NOT NULL DEFAULT 0,
-  base_defense INTEGER NOT NULL DEFAULT 0,
-  base_critical INTEGER NOT NULL DEFAULT 0,
-  base_speed DECIMAL(3,2) NOT NULL DEFAULT 1.0,
-  hp_per_level INTEGER NOT NULL DEFAULT 0,
-  attack_per_level INTEGER NOT NULL DEFAULT 0,
-  defense_per_level INTEGER NOT NULL DEFAULT 0,
-  critical_per_level INTEGER NOT NULL DEFAULT 0,
-  speed_per_level DECIMAL(3,2) NOT NULL DEFAULT 0.0,
-  xp_reward INTEGER NOT NULL DEFAULT 0,
-  gold_reward INTEGER NOT NULL DEFAULT 0,
-  description TEXT,
-  image VARCHAR(100),
-  abilities JSON,
-  weaknesses JSON,
-  resistances JSON,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Inserir dados dos tipos de personagem
 INSERT INTO character_types (id, name, bg_image, base_hp, base_attack, base_defense, base_critical, base_speed, hp_per_level, attack_per_level, defense_per_level, critical_per_level, speed_per_level) VALUES
 (1, 'Assassin', 'speed.png', 700, 60, 120, 20, 1.2, 25, 3, 8, 2, 0.02),
 (2, 'Warrior', 'critical.png', 900, 75, 80, 35, 1.0, 35, 4, 6, 3, 0.01),
 (3, 'Tank', 'reflect.png', 1100, 50, 280, 15, 1.0, 45, 2, 12, 1, 0.00);
 
--- Inserir dados dos inimigos
-INSERT INTO enemies (id, name, type, level, base_hp, base_attack, base_defense, base_critical, base_speed, hp_per_level, attack_per_level, defense_per_level, critical_per_level, speed_per_level, xp_reward, gold_reward, description, image, abilities, weaknesses, resistances) VALUES
-(1, 'Orc Warrior', 'warrior', 1, 800, 70, 70, 20, 1.0, 30, 3, 5, 2, 0.01, 50, 25, 'A fierce orc warrior with brutal strength and heavy armor.', 'orc-warrior.png', '["Rage Strike", "Shield Bash"]', '["magic", "speed"]', '["physical"]'),
-(2, 'Shadow Assassin', 'assassin', 2, 650, 85, 45, 30, 1.2, 25, 4, 3, 3, 0.02, 75, 40, 'A deadly assassin that strikes from the shadows with precision.', 'shadow-assassin.png', '["Stealth Strike", "Poison Blade"]', '["defense", "tank"]', '["critical", "speed"]'),
-(3, 'Ice Golem', 'tank', 3, 1200, 65, 240, 25, 1.0, 40, 2, 10, 2, 0.00, 100, 60, 'A massive ice construct with incredible defensive capabilities.', 'ice-golem.png', '["Frost Armor", "Ice Slam"]', '["fire", "critical"]', '["physical", "ice"]'),
-(4, 'Dragon Knight', 'boss', 5, 1400, 90, 280, 45, 1.0, 50, 5, 15, 3, 0.01, 200, 100, 'An elite dragon knight with balanced stats and powerful abilities.', 'dragon-knight.png', '["Dragon Breath", "Knight\'s Honor", "Fire Slash"]', '["ice", "holy"]', '["fire", "dark"]');
 
--- Função para calcular stats baseado no level
-CREATE OR REPLACE FUNCTION calculate_character_stats(character_type_id INTEGER, level INTEGER)
-RETURNS TABLE(
-  hp INTEGER,
-  attack INTEGER,
-  defense INTEGER,
-  critical INTEGER,
-  speed DECIMAL(3,2)
-) AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    (ct.base_hp + (ct.hp_per_level * (level - 1)))::INTEGER as hp,
-    (ct.base_attack + (ct.attack_per_level * (level - 1)))::INTEGER as attack,
-    (ct.base_defense + (ct.defense_per_level * (level - 1)))::INTEGER as defense,
-    (ct.base_critical + (ct.critical_per_level * (level - 1)))::INTEGER as critical,
-    (ct.base_speed + (ct.speed_per_level * (level - 1)))::DECIMAL(3,2) as speed
-  FROM character_types ct
-  WHERE ct.id = character_type_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Função para calcular stats de inimigos baseado no level
-CREATE OR REPLACE FUNCTION calculate_enemy_stats(enemy_id INTEGER, level INTEGER DEFAULT NULL)
-RETURNS TABLE(
-  hp INTEGER,
-  attack INTEGER,
-  defense INTEGER,
-  critical INTEGER,
-  speed DECIMAL(3,2)
-) AS $$
-DECLARE
-  enemy_level INTEGER;
-BEGIN
-  -- Se level não foi fornecido, usa o level padrão do inimigo
-  IF level IS NULL THEN
-    SELECT e.level INTO enemy_level FROM enemies e WHERE e.id = enemy_id;
-  ELSE
-    enemy_level := level;
-  END IF;
-  
-  RETURN QUERY
-  SELECT 
-    (e.base_hp + (e.hp_per_level * (enemy_level - 1)))::INTEGER as hp,
-    (e.base_attack + (e.attack_per_level * (enemy_level - 1)))::INTEGER as attack,
-    (e.base_defense + (e.defense_per_level * (enemy_level - 1)))::INTEGER as defense,
-    (e.base_critical + (e.critical_per_level * (enemy_level - 1)))::INTEGER as critical,
-    (e.base_speed + (e.speed_per_level * (enemy_level - 1)))::DECIMAL(3,2) as speed
-  FROM enemies e
-  WHERE e.id = enemy_id;
-END;
-$$ LANGUAGE plpgsql;

@@ -6,7 +6,6 @@ import '../src/styles/variables.css'
 import App from './App.jsx'
 import Perfil from '../src/pages/Perfil.jsx';
 import Login from '../src/pages/Login.jsx';
-import PveBattle from '../src/pages/PveBattle.jsx';
 import Tournament from '../src/pages/Tournament.jsx';
 import Shop from '../src/pages/Shop.jsx';
 import { AuthProvider, useAuth } from '../context/AuthContext.jsx';
@@ -60,14 +59,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             element={
               <ProtectedRoute>
                 <Perfil />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/PveBattle" 
-            element={
-              <ProtectedRoute>
-                <PveBattle />
               </ProtectedRoute>
             } 
           />
