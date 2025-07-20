@@ -22,4 +22,10 @@ INSERT INTO character_types (id, name, bg_image, base_hp, base_attack, base_defe
 (2, 'Warrior', 'critical.png', 900, 75, 80, 35, 1.0, 35, 4, 6, 3, 0.01),
 (3, 'Tank', 'reflect.png', 1100, 50, 280, 15, 1.0, 45, 2, 12, 1, 0.00);
 
-
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS character_name VARCHAR(20) UNIQUE CHECK (char_length(trim(character_name)) > 0),
+ADD COLUMN IF NOT EXISTS character_type INTEGER DEFAULT 1 CHECK (character_type IN (1, 2, 3)),
+ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1 CHECK (level >= 1),
+ADD COLUMN IF NOT EXISTS ranked_points INTEGER DEFAULT 0 CHECK (ranked_points >= 0),
+ADD COLUMN IF NOT EXISTS victories INTEGER DEFAULT 0 CHECK (victories >= 0),
+ADD COLUMN IF NOT EXISTS defeats INTEGER DEFAULT 0 CHECK (defeats >= 0),

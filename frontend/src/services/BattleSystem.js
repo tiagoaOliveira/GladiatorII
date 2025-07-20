@@ -1,14 +1,13 @@
-// BattleSystem.js - PvP Version
+// BattleSystem.js - PvP Version Corrigida
 export class BattleSystem {
-  constructor(player1Stats, player2Stats, player1Powers, player2Powers, onBattleUpdate, onBattleEnd) {
+  constructor(player1Stats, player2Stats, player1Powers = [], player2Powers = [], onBattleUpdate, onBattleEnd) {
     this.player1 = {
       ...player1Stats,
       currentHp: player1Stats.hp,
       maxHp: player1Stats.hp,
       lastAttackTime: 0,
       name: 'Player 1',
-      powers: player1Powers || [],
-      // Estados específicos dos poderes
+      powers: this.normalizePowers(player1Powers),
       powerStates: this.initializePowerStates(),
       powerCooldowns: new Map()
     };
@@ -19,8 +18,7 @@ export class BattleSystem {
       maxHp: player2Stats.hp,
       lastAttackTime: 0,
       name: 'Player 2',
-      powers: player2Powers || [],
-      // Estados específicos dos poderes
+      powers: this.normalizePowers(player2Powers),
       powerStates: this.initializePowerStates(),
       powerCooldowns: new Map()
     };
@@ -33,15 +31,23 @@ export class BattleSystem {
     this.battleLog = [];
   }
 
+  // Normaliza poderes para garantir estrutura consistente
+  normalizePowers(powers) {
+    if (!powers || !Array.isArray(powers)) return [];
+    
+    return powers.filter(power => power && typeof power === 'object' && power.name).map(power => ({
+      id: power.id || Math.random(),
+      name: power.name,
+      description: power.description || '',
+      activation_chance: power.activation_chance || 100,
+      icon: power.icon || '⚡',
+      cooldown: power.cooldown || 0
+    }));
+  }
+
   // Inicializa estados específicos para cada poder
   initializePowerStates() {
     return {
-      // Faca Rápida - sem estado especial
-      facaRapida: {},
-      
-      // Ataque Perfuro-Cortante - sem estado especial
-      perfuroCortante: {},
-      
       // Frenesi - controle de duração
       frenesi: {
         active: false,
@@ -72,26 +78,33 @@ export class BattleSystem {
 
   // Calcula velocidade de ataque considerando Frenesi
   getAttackInterval(player) {
-    let speed = player.speed;
+    let speed = player.speed || 1.0;
     
     // Verifica Frenesi ativo
     if (player.powerStates.frenesi.active && Date.now() < player.powerStates.frenesi.endTime) {
       speed *= 2;
+      this.addToBattleLog(`💨 ${player.name} está em Frenesi! Velocidade dobrada!`);
     } else if (player.powerStates.frenesi.active) {
       // Frenesi expirou
       player.powerStates.frenesi.active = false;
+      this.addToBattleLog(`💨 Frenesi de ${player.name} terminou.`);
     }
     
-    return 1000 / speed;
+    // Converte para intervalo em ms (mínimo 500ms, máximo 3000ms)
+    const interval = Math.max(500, Math.min(3000, 1000 / speed));
+    return interval;
   }
 
   // Verifica se pode ativar um poder
   canActivatePower(power, player, context = {}) {
+    if (!power || !power.name) return false;
+    
     const now = Date.now();
     
     // Verifica cooldown
-    if (player.powerCooldowns.has(power.id)) {
-      const cooldownEnd = player.powerCooldowns.get(power.id);
+    const cooldownKey = `${power.id || power.name}_${player.name}`;
+    if (player.powerCooldowns.has(cooldownKey)) {
+      const cooldownEnd = player.powerCooldowns.get(cooldownKey);
       if (now < cooldownEnd) return false;
     }
 
@@ -109,22 +122,39 @@ export class BattleSystem {
       
       default:
         // Poderes ofensivos só ativam durante ataques
-        return context.isDuringAttack;
+        return context.isDuringAttack || context.isBeingAttacked;
     }
   }
 
-  // Tenta ativar poderes antes do ataque
+  // Tenta ativar poderes
   tryActivatePowers(attacker, defender, context) {
     const activatedPowers = [];
     let powerEffects = {};
 
-    for (const power of attacker.powers) {
-      if (this.canActivatePower(power, attacker, context)) {
-        // Testa probabilidade de ativação
-        if (Math.random() * 100 < power.activation_chance) {
-          const effects = this.activatePower(power, attacker, defender, context);
-          activatedPowers.push({ power, effects });
-          powerEffects = { ...powerEffects, ...effects };
+    // Verifica poderes defensivos do defensor primeiro
+    if (context.isBeingAttacked) {
+      for (const power of defender.powers) {
+        if (this.canActivatePower(power, defender, context)) {
+          // Testa probabilidade de ativação
+          if (Math.random() * 100 < power.activation_chance) {
+            const effects = this.activatePower(power, defender, attacker, context);
+            activatedPowers.push({ power, effects, player: defender });
+            powerEffects = { ...powerEffects, ...effects };
+          }
+        }
+      }
+    }
+
+    // Verifica poderes ofensivos do atacante
+    if (context.isDuringAttack) {
+      for (const power of attacker.powers) {
+        if (this.canActivatePower(power, attacker, context)) {
+          // Testa probabilidade de ativação
+          if (Math.random() * 100 < power.activation_chance) {
+            const effects = this.activatePower(power, attacker, defender, context);
+            activatedPowers.push({ power, effects, player: attacker });
+            powerEffects = { ...powerEffects, ...effects };
+          }
         }
       }
     }
@@ -140,50 +170,54 @@ export class BattleSystem {
       case 'Faca Rápida':
         this.addToBattleLog(`💫 ${player.name} ativou ${power.name}!`, true);
         
-        // Executa dois ataques com 60% de dano
-        const firstHit = this.calculateBasicDamage(player, target, 0.6);
-        target.currentHp = Math.max(0, target.currentHp - firstHit.damage);
-        this.addAttackLog(player, target, firstHit, 'Faca Rápida (1/2)');
+        // Executa dois ataques com 60% de dano cada
+        setTimeout(() => {
+          const firstHit = this.calculateBasicDamage(player, target, 0.6);
+          target.currentHp = Math.max(0, target.currentHp - firstHit.damage);
+          this.addAttackLog(player, target, firstHit, 'Faca Rápida (1/2)');
+          
+          if (target.currentHp > 0) {
+            setTimeout(() => {
+              const secondHit = this.calculateBasicDamage(player, target, 0.6);
+              target.currentHp = Math.max(0, target.currentHp - secondHit.damage);
+              this.addAttackLog(player, target, secondHit, 'Faca Rápida (2/2)');
+            }, 200);
+          }
+        }, 100);
         
-        if (target.currentHp > 0) {
-          const secondHit = this.calculateBasicDamage(player, target, 0.6);
-          target.currentHp = Math.max(0, target.currentHp - secondHit.damage);
-          this.addAttackLog(player, target, secondHit, 'Faca Rápida (2/2)');
-        }
-        
-        this.setCooldown(power, player, now);
+        this.setCooldown(power, player, now + 5000); // 5s cooldown
         return { skipNormalAttack: true };
 
       case 'Ataque Perfuro-Cortante':
         this.addToBattleLog(`🗡️ ${player.name} ativou ${power.name}!`, true);
-        this.setCooldown(power, player, now);
+        this.setCooldown(power, player, now + 3000); // 3s cooldown
         return { ignoreDefense: true };
 
       case 'Frenesi':
         player.powerStates.frenesi.active = true;
         player.powerStates.frenesi.endTime = now + 3000;
         this.addToBattleLog(`💨 ${player.name} ativou ${power.name}! Velocidade dobrada por 3s!`, true);
-        this.setCooldown(power, player, now);
-        break;
+        this.setCooldown(power, player, now + 10000); // 10s cooldown
+        return { speedBoost: true };
 
       case 'Fúria':
         player.powerStates.furia.stacks = 2;
         const hpLoss = Math.floor(player.maxHp * 0.1);
         player.currentHp = Math.max(1, player.currentHp - hpLoss);
         this.addToBattleLog(`🔥 ${player.name} ativou ${power.name}! +30% crítico por 2 ataques. Perdeu ${hpLoss} HP!`, true);
-        this.setCooldown(power, player, now);
-        break;
+        this.setCooldown(power, player, now + 8000); // 8s cooldown
+        return { criticalBoost: true };
 
       case 'Berserker':
         player.powerStates.berserker.active = true;
-        this.addToBattleLog(`😤 ${player.name} ativou ${power.name}! +20% dano!`, true);
-        break;
+        this.addToBattleLog(`😤 ${player.name} ativou ${power.name}! +20% dano quando HP < 30%!`, true);
+        return { damageBoost: true };
 
       case 'Reflexão Total':
         player.powerStates.reflexao.nextReflection = true;
-        this.addToBattleLog(`🛡️ ${player.name} ativou ${power.name}! Próximo dano será refletido!`, true);
-        this.setCooldown(power, player, now);
-        break;
+        this.addToBattleLog(`🛡️ ${player.name} ativou ${power.name}! Próximo dano será refletido 100%!`, true);
+        this.setCooldown(power, player, now + 12000); // 12s cooldown
+        return { reflection: true };
 
       case 'Guardião Imortal':
         player.currentHp = 1;
@@ -196,17 +230,16 @@ export class BattleSystem {
   }
 
   // Define cooldown do poder
-  setCooldown(power, player, currentTime) {
-    if (power.cooldown && power.cooldown > 0) {
-      player.powerCooldowns.set(power.id, currentTime + (power.cooldown * 1000));
-    }
+  setCooldown(power, player, endTime) {
+    const cooldownKey = `${power.id || power.name}_${player.name}`;
+    player.powerCooldowns.set(cooldownKey, endTime);
   }
 
   // Calcula dano básico (usado pela Faca Rápida)
   calculateBasicDamage(attacker, defender, damageMultiplier = 1.0) {
-    let baseDamage = attacker.attack * damageMultiplier;
+    let baseDamage = (attacker.attack || 50) * damageMultiplier;
 
-    // Berserker
+    // Aplicar Berserker se ativo
     if (attacker.powerStates.berserker.active) {
       const hpPercent = (attacker.currentHp / attacker.maxHp) * 100;
       if (hpPercent < 30) {
@@ -214,20 +247,20 @@ export class BattleSystem {
       }
     }
 
-    // Crítico base
-    const isCritical = Math.random() * 100 < attacker.critical;
-    let damage = baseDamage;
+    // Calcular crítico
+    let criticalChance = attacker.critical || 5;
+    const isCritical = Math.random() * 100 < criticalChance;
     
     if (isCritical) {
-      damage *= 2;
+      baseDamage *= 2;
     }
 
-    // Defesa
-    const defenseReduction = defender.defense / 10;
-    damage = Math.max(1, Math.floor(damage * (1 - defenseReduction / 100)));
+    // Aplicar defesa
+    const defenseReduction = Math.min(90, (defender.defense || 10) / 10); // Máximo 90% redução
+    const finalDamage = Math.max(1, Math.floor(baseDamage * (1 - defenseReduction / 100)));
 
     return {
-      damage: Math.floor(damage),
+      damage: finalDamage,
       isCritical,
       originalDamage: Math.floor(baseDamage)
     };
@@ -235,9 +268,9 @@ export class BattleSystem {
 
   // Calcula dano completo com poderes
   calculateDamage(attacker, defender, powerEffects = {}) {
-    let baseDamage = attacker.attack;
+    let baseDamage = attacker.attack || 50;
 
-    // Berserker
+    // Aplicar Berserker
     if (attacker.powerStates.berserker.active) {
       const hpPercent = (attacker.currentHp / attacker.maxHp) * 100;
       if (hpPercent < 30) {
@@ -245,31 +278,34 @@ export class BattleSystem {
       }
     }
 
-    // Crítico base + Fúria
-    let criticalChance = attacker.critical;
+    // Calcular crítico com Fúria
+    let criticalChance = attacker.critical || 5;
     
     if (attacker.powerStates.furia.stacks > 0) {
       criticalChance += 30;
       attacker.powerStates.furia.stacks--;
+      if (attacker.powerStates.furia.stacks === 0) {
+        this.addToBattleLog(`🔥 Fúria de ${attacker.name} terminou.`);
+      }
     }
 
     const isCritical = Math.random() * 100 < criticalChance;
-    let damage = baseDamage;
     
     if (isCritical) {
-      damage *= 2;
+      baseDamage *= 2;
     }
 
-    // Defesa (ignorar se Perfuro-Cortante)
+    // Aplicar defesa (ignorar se Perfuro-Cortante)
+    let finalDamage = baseDamage;
     if (!powerEffects.ignoreDefense) {
-      const defenseReduction = defender.defense / 10;
-      damage = Math.max(1, Math.floor(damage * (1 - defenseReduction / 100)));
+      const defenseReduction = Math.min(90, (defender.defense || 10) / 10);
+      finalDamage = Math.max(1, Math.floor(baseDamage * (1 - defenseReduction / 100)));
     } else {
-      damage = Math.max(1, Math.floor(damage));
+      finalDamage = Math.max(1, Math.floor(baseDamage));
     }
 
     return {
-      damage: Math.floor(damage),
+      damage: finalDamage,
       isCritical,
       originalDamage: Math.floor(baseDamage),
       powerEffects
@@ -278,23 +314,32 @@ export class BattleSystem {
 
   // Executa um ataque completo
   performAttack(attacker, defender) {
-    // Verifica poderes ofensivos ANTES do ataque
-    const { activatedPowers, powerEffects } = this.tryActivatePowers(
+    // Primeiro, verificar poderes defensivos do defensor
+    const { powerEffects: defensivePowers } = this.tryActivatePowers(
+      attacker, 
+      defender, 
+      { isBeingAttacked: true }
+    );
+
+    // Verificar poderes ofensivos do atacante
+    const { powerEffects: offensivePowers } = this.tryActivatePowers(
       attacker, 
       defender, 
       { isDuringAttack: true }
     );
 
+    const allPowerEffects = { ...defensivePowers, ...offensivePowers };
+
     // Se algum poder especial executou o ataque (ex: Faca Rápida)
-    if (powerEffects.skipNormalAttack) {
+    if (allPowerEffects.skipNormalAttack) {
       return;
     }
 
-    // Calcula dano do ataque normal
-    const attackResult = this.calculateDamage(attacker, defender, powerEffects);
+    // Calcular dano do ataque normal
+    const attackResult = this.calculateDamage(attacker, defender, allPowerEffects);
     let finalDamage = attackResult.damage;
 
-    // Verifica Guardião Imortal antes de aplicar dano fatal
+    // Verificar Guardião Imortal antes de aplicar dano fatal
     if ((defender.currentHp - finalDamage) <= 0) {
       const guardiao = defender.powers.find(p => p.name === 'Guardião Imortal');
       if (guardiao && !defender.powerStates.guardiao.used) {
@@ -310,35 +355,28 @@ export class BattleSystem {
       }
     }
 
-    // Verifica Reflexão Total antes de aplicar dano
-    let shouldReflect = false;
+    // Verificar e aplicar reflexão
+    let reflectedDamage = 0;
     if (defender.powerStates.reflexao.nextReflection) {
-      shouldReflect = true;
+      reflectedDamage = finalDamage;
       defender.powerStates.reflexao.nextReflection = false;
-    } else {
-      // Tenta ativar Reflexão Total
-      const reflexao = defender.powers.find(p => p.name === 'Reflexão Total');
-      if (reflexao && this.canActivatePower(reflexao, defender, { isBeingAttacked: true })) {
-        if (Math.random() * 100 < reflexao.activation_chance) {
-          this.activatePower(reflexao, defender, attacker, { isBeingAttacked: true });
-          shouldReflect = true;
-        }
-      }
+      this.addToBattleLog(`🛡️ ${defender.name} refletiu ${reflectedDamage} de dano para ${attacker.name}!`);
     }
 
-    // Aplica dano
+    // Aplicar dano ao defensor
     defender.currentHp = Math.max(0, defender.currentHp - finalDamage);
     this.addAttackLog(attacker, defender, attackResult);
 
-    // Aplica reflexão
-    if (shouldReflect) {
-      attacker.currentHp = Math.max(0, attacker.currentHp - finalDamage);
-      this.addToBattleLog(`🛡️ Refletiu ${finalDamage} de dano!`, true);
+    // Aplicar dano refletido ao atacante
+    if (reflectedDamage > 0) {
+      attacker.currentHp = Math.max(0, attacker.currentHp - reflectedDamage);
     }
   }
 
   // Adiciona entrada ao log
   addToBattleLog(message, isPowerActivation = false) {
+    if (!this.battleStartTime) this.battleStartTime = Date.now();
+    
     this.battleLog.push({
       timestamp: Date.now() - this.battleStartTime,
       message,
@@ -349,6 +387,8 @@ export class BattleSystem {
 
   // Log de ataque
   addAttackLog(attacker, defender, attackResult, attackName = 'Attack') {
+    if (!this.battleStartTime) this.battleStartTime = Date.now();
+    
     this.battleLog.push({
       timestamp: Date.now() - this.battleStartTime,
       attacker: attacker.name,
@@ -367,11 +407,11 @@ export class BattleSystem {
     const player2Dead = this.player2.currentHp <= 0;
 
     if (player1Dead && player2Dead) {
-      return { result: 'draw', reason: 'both_died' };
+      return { result: 'draw', winner: null, reason: 'both_died' };
     } else if (player1Dead) {
-      return { result: 'player2_victory', reason: 'player1_died' };
+      return { result: 'player2_victory', winner: 'player2', reason: 'player1_died' };
     } else if (player2Dead) {
-      return { result: 'player1_victory', reason: 'player2_died' };
+      return { result: 'player1_victory', winner: 'player1', reason: 'player2_died' };
     }
 
     return null;
@@ -388,19 +428,23 @@ export class BattleSystem {
 
     // Player 1 ataca
     if (currentTime - this.player1.lastAttackTime >= player1AttackInterval) {
-      this.performAttack(this.player1, this.player2);
-      this.player1.lastAttackTime = currentTime;
-      updated = true;
+      if (this.player2.currentHp > 0) {
+        this.performAttack(this.player1, this.player2);
+        this.player1.lastAttackTime = currentTime;
+        updated = true;
+      }
     }
 
     // Player 2 ataca
     if (currentTime - this.player2.lastAttackTime >= player2AttackInterval) {
-      this.performAttack(this.player2, this.player1);
-      this.player2.lastAttackTime = currentTime;
-      updated = true;
+      if (this.player1.currentHp > 0) {
+        this.performAttack(this.player2, this.player1);
+        this.player2.lastAttackTime = currentTime;
+        updated = true;
+      }
     }
 
-    // Atualiza UI
+    // Atualizar UI se houve mudanças
     if (updated) {
       this.onBattleUpdate({
         player1: { 
@@ -415,18 +459,23 @@ export class BattleSystem {
       });
     }
 
-    // Verifica fim da batalha
+    // Verificar fim da batalha
     const battleResult = this.checkBattleEnd();
     if (battleResult) {
       this.endBattle(battleResult);
       return;
     }
 
+    // Continuar loop
     this.animationId = requestAnimationFrame(this.battleLoop);
   };
 
   // Inicia batalha
   startBattle() {
+    console.log('Iniciando batalha PvP...');
+    console.log('Player 1:', this.player1);
+    console.log('Player 2:', this.player2);
+    
     this.battleActive = true;
     this.battleStartTime = Date.now();
     this.player1.lastAttackTime = 0;
@@ -439,8 +488,20 @@ export class BattleSystem {
     this.player1.powerCooldowns.clear();
     this.player2.powerCooldowns.clear();
 
-    this.addToBattleLog('⚔️ Batalha PvP iniciada!', false);
+    // Ativar Berserker se HP < 30%
+    [this.player1, this.player2].forEach(player => {
+      const hpPercent = (player.currentHp / player.maxHp) * 100;
+      if (hpPercent < 30) {
+        const berserker = player.powers.find(p => p.name === 'Berserker');
+        if (berserker && !player.powerStates.berserker.active) {
+          this.activatePower(berserker, player, null, {});
+        }
+      }
+    });
 
+    this.addToBattleLog(`⚔️ Batalha PvP iniciada! ${this.player1.name} vs ${this.player2.name}!`);
+
+    // Atualização inicial
     this.onBattleUpdate({
       player1: { 
         ...this.player1,
@@ -453,11 +514,14 @@ export class BattleSystem {
       log: [...this.battleLog]
     });
 
+    // Iniciar loop da batalha
     this.animationId = requestAnimationFrame(this.battleLoop);
   }
 
   // Finaliza batalha
   endBattle(result) {
+    console.log('Finalizando batalha:', result);
+    
     this.battleActive = false;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
@@ -468,17 +532,17 @@ export class BattleSystem {
     let message = '';
     switch (result.result) {
       case 'player1_victory':
-        message = '🏆 Player 1 Venceu!';
+        message = `🏆 ${this.player1.name} Venceu!`;
         break;
       case 'player2_victory':
-        message = '🏆 Player 2 Venceu!';
+        message = `🏆 ${this.player2.name} Venceu!`;
         break;
       case 'draw':
-        message = '⚖️ Empate!';
+        message = '⚖️ Empate! Ambos os jogadores caíram!';
         break;
     }
     
-    this.addToBattleLog(message, false);
+    this.addToBattleLog(message);
 
     this.onBattleEnd({
       ...result,
@@ -493,13 +557,14 @@ export class BattleSystem {
 
   // Para batalha
   stopBattle() {
+    console.log('Parando batalha...');
     this.battleActive = false;
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
     }
   }
 
-  // Stats atuais
+  // Stats atuais da batalha
   getBattleStats() {
     return {
       player1: {
@@ -510,7 +575,8 @@ export class BattleSystem {
         hpPercent: (this.player2.currentHp / this.player2.maxHp) * 100,
         ...this.player2
       },
-      log: [...this.battleLog]
+      log: [...this.battleLog],
+      isActive: this.battleActive
     };
   }
 }

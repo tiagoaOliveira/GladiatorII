@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import './Login.css'; // mantém seu CSS existente
+import './Login.css';
 
 export default function Auth() {
-  const { signIn, signUp, user, loading: authLoading } = useAuth();
-  const [mode, setMode] = useState('login'); // 'login' ou 'signup'
+  const { signIn, signUp, signInWithPi, user, loading: authLoading } = useAuth();
+  const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -17,6 +17,7 @@ export default function Auth() {
     }
   }, [user, authLoading]);
 
+  // Login tradicional (email/senha)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -25,14 +26,12 @@ export default function Auth() {
     try {
       if (mode === 'login') {
         await signIn(email, password);
-        // O redirecionamento será feito pelo useEffect acima
       } else {
         const result = await signUp(email, password);
         
         if (result.user && !result.user.email_confirmed_at) {
           setError('Verifique seu email para confirmar o cadastro.');
         } else {
-          console.log('Usuário criado:', result.user);
           setMode('login');
           setError('Conta criada com sucesso! Faça login.');
         }
@@ -40,7 +39,6 @@ export default function Auth() {
     } catch (err) {
       console.error('Erro de autenticação:', err);
       
-      // Tratamento de erros mais específico
       if (err.message.includes('Invalid login credentials')) {
         setError('Email ou senha incorretos');
       } else if (err.message.includes('User already registered')) {
@@ -49,6 +47,30 @@ export default function Auth() {
         setError('A senha deve ter pelo menos 6 caracteres');
       } else {
         setError(err.message || 'Erro inesperado');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Login via Pi Network
+  const handlePiLogin = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const result = await signInWithPi();
+      console.log('Login Pi Network realizado:', result);
+      // Redirecionamento será feito pelo useEffect acima
+    } catch (err) {
+      console.error('Erro no login Pi Network:', err);
+      
+      if (err.message.includes('Pi Network SDK não disponível')) {
+        setError('Pi Network não disponível. Abra no Pi Browser para usar esta opção.');
+      } else if (err.message.includes('Usuário cancelou')) {
+        setError('Login cancelado pelo usuário.');
+      } else {
+        setError(err.message || 'Erro no login Pi Network');
       }
     } finally {
       setIsLoading(false);
@@ -68,10 +90,7 @@ export default function Auth() {
 
   return (
     <div className="login-container">
-      <form
-        onSubmit={handleSubmit}
-        className={`login-form ${isLoading ? 'loading' : ''}`}
-      >
+      <div className={`login-form ${isLoading ? 'loading' : ''}`}>
         <h2 className="login-title">
           {mode === 'login' ? 'Join the Realm' : 'Create Account'}
         </h2>
@@ -82,39 +101,56 @@ export default function Auth() {
           </div>
         )}
 
-        <div className="input-group">
-          <input
-            type="email"
-            placeholder="Input your Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="login-input"
-            required
-            disabled={isLoading}
-          />
-        </div>
-        <div className="input-group">
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="login-input"
-            required
-            disabled={isLoading}
-            minLength={6}
-          />
+        {/* Botão Pi Network */}
+        <button
+          type="button"
+          onClick={handlePiLogin}
+          className="pi-login-button"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Conectando...' : '🥧 Login com Pi Network'}
+        </button>
+
+        <div className="divider">
+          <span>ou</span>
         </div>
 
-        <button
-          type="submit"
-          className="login-button"
-          disabled={isLoading || !email || !password}
-        >
-          {isLoading
-            ? mode === 'login' ? 'Starting...' : 'Registering...'
-            : mode === 'login' ? 'Login' : 'Sign Up'}
-        </button>
+        {/* Login tradicional */}
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <input
+              type="email"
+              placeholder="Input your Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="login-input"
+              required
+              disabled={isLoading}
+            />
+          </div>
+          <div className="input-group">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="login-input"
+              required
+              disabled={isLoading}
+              minLength={6}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="login-button"
+            disabled={isLoading || !email || !password}
+          >
+            {isLoading
+              ? mode === 'login' ? 'Starting...' : 'Registering...'
+              : mode === 'login' ? 'Login' : 'Sign Up'}
+          </button>
+        </form>
 
         <p className="toggle-text">
           {mode === 'login'
@@ -134,7 +170,7 @@ export default function Auth() {
             {mode === 'login' ? 'Sign Up' : 'Login'}
           </button>
         </p>
-      </form>
+      </div>
     </div>
   );
 }

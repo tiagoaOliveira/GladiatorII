@@ -1,0 +1,247 @@
+/* Tournament.css */
+
+.tournament {
+  padding: var(--spacing-lg);
+}
+
+.tournament-title {
+  font-family: var(--font-primary);
+  color: var(--primary-gold);
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  font-size: var(--font-size-3xl);
+}
+
+/* Loading e Error States */
+.tournament-loading,
+.tournament-error {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.tournament-loading h1 {
+  color: var(--text-light);
+}
+
+.tournament-error-btn {
+  background: var(--gradient-gold);
+  color: var(--background-dark);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  margin-top: var(--spacing-md);
+  cursor: pointer;
+}
+
+/* Perfil do Jogador */
+.player-profile {
+  border: var(--border-width-medium) solid var(--primary-gold);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  background: var(--gradient-parchment);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.player-profile-title {
+  font-family: var(--font-primary);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.player-icon {
+  font-size: var(--font-size-4xl);
+}
+
+.player-details p {
+  margin: var(--spacing-xs) 0;
+  color: var(--text-secondary);
+}
+
+.player-details strong {
+  color: var(--primary-gold);
+}
+
+/* Leaderboard */
+.leaderboard {
+  margin: var(--spacing-lg) 0;
+}
+
+.leaderboard-title {
+  font-family: var(--font-primary);
+  color: var(--text-light);
+  margin-bottom: var(--spacing-md);
+}
+
+.leaderboard-list {
+  border: var(--border-width-thin) solid var(--border-medieval);
+  padding: var(--spacing-md);
+  background: var(--background-overlay);
+  border-radius: var(--border-radius-md);
+}
+
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-sm) 0;
+  color: var(--text-light);
+  border-bottom: var(--border-width-thin) solid var(--border-light);
+}
+
+.leaderboard-item:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-rank {
+  color: var(--primary-gold);
+  font-weight: var(--font-weight-medium);
+}
+
+.leaderboard-points {
+  color: var(--text-light);
+}
+
+/* Oponentes */
+.opponents {
+  margin: var(--spacing-lg) 0;
+}
+
+.opponents-title {
+  font-family: var(--font-primary);
+  color: var(--text-light);
+  margin-bottom: var(--spacing-md);
+}
+
+.opponents-empty {
+  color: var(--text-light);
+}
+
+.opponents-grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.opponent-card {
+  border: var(--border-width-thin) solid var(--border-medieval);
+  padding: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--background-overlay);
+  border-radius: var(--border-radius-md);
+  transition: var(--transition-normal);
+}
+
+.opponent-card:hover {
+  border-color: var(--primary-gold);
+  box-shadow: var(--shadow-gold-glow);
+}
+
+.opponent-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.opponent-icon {
+  font-size: var(--font-size-2xl);
+}
+
+.opponent-details p {
+  margin: var(--spacing-xs) 0;
+  color: var(--text-light);
+}
+
+.opponent-details strong {
+  color: var(--primary-gold);
+}
+
+.opponent-stats {
+  font-size: var(--font-size-sm);
+  color: var(--neutral-stone-light);
+}
+
+.challenge-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--gradient-gold);
+  color: var(--background-dark);
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  transition: var(--transition-normal);
+  cursor: pointer;
+}
+
+.challenge-btn:hover {
+  background: var(--primary-gold-dark);
+  box-shadow: var(--shadow-md);
+}
+
+/* Sistema de Pontuação */
+.points-system {
+  border: var(--border-width-thin) solid var(--warning-orange);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  background: rgba(255, 196, 0, 0.1);
+  border-radius: var(--border-radius-md);
+}
+
+.points-system-title {
+  font-family: var(--font-primary);
+  color: var(--warning-orange);
+  margin-bottom: var(--spacing-sm);
+}
+
+.points-system p {
+  margin: var(--spacing-xs) 0;
+  color: var(--text-light);
+}
+
+/* No Character */
+.no-character {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.no-character-title {
+  color: var(--text-light);
+}
+
+.no-character-text {
+  color: var(--neutral-stone-light);
+  margin-top: var(--spacing-md);
+}
+
+/* Media Query para Desktop */
+@media (min-width: 768px) {
+  .tournament {
+    padding: var(--spacing-2xl);
+  }
+  
+  .opponents-grid {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  }
+  
+  .opponent-card {
+    padding: var(--spacing-xl);
+  }
+  
+  .player-profile {
+    padding: var(--spacing-xl);
+  }
+  
+  .leaderboard-list {
+    padding: var(--spacing-lg);
+  }
+  
+  .points-system {
+    padding: var(--spacing-xl);
+  }
+}
